@@ -1,11 +1,14 @@
 # A3 — Sistema de Cadastro e Venda de Ingressos (Equipe 11)
 
+[![CI/CD](https://github.com/HenriqueSHA/Ticket-System/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/HenriqueSHA/Ticket-System/actions/workflows/ci-cd.yml)
+
 Trabalho A3 de **Algoritmos e Programação** — UNIFACS 2026.2 — Prof. Robson Silva.
 
 **Equipe:** Fellipe Leonny dos Santos Ribeiro · Henrique Albergaria Santos · Yasmin Oliveira de Souza
 
 Sistema web em **Rust** com banco **PostgreSQL** para cadastro de eventos e venda de ingressos,
-com três perfis: cliente, organizador e SuperAdmin.
+com três perfis: cliente, organizador e SuperAdmin. Roda em **3 contêineres**: front (interface
+web), back (API REST) e db (PostgreSQL).
 
 ## Como rodar
 
@@ -30,6 +33,7 @@ Abra **http://localhost:3000**. Logins de demonstração e detalhes técnicos em
 | [`documentos/relatorio/prints/`](documentos/relatorio/prints/) | capturas de tela do sistema |
 | [`documentos/relatorio/saida/`](documentos/relatorio/saida/) | relatórios `.docx` gerados |
 | [`ferramentas/`](ferramentas/) | scripts que geram fluxogramas e montam o relatório |
+| [`.github/workflows/`](.github/workflows/) | pipeline de CI/CD (GitHub Actions) |
 | [`PLANO.md`](PLANO.md) | plano de trabalho com checklist das fases |
 
 ## Entregas

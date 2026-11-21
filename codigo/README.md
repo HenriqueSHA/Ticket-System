@@ -95,6 +95,35 @@ Regras protegidas: a quantidade de uma categoria nunca fica abaixo do que já fo
 das categorias não passa da capacidade; categoria ou evento com vendas não é apagado (o histórico
 dos clientes é preservado); o novo preço vale só para as próximas vendas.
 
+## CI/CD (GitHub Actions)
+
+O workflow [`.github/workflows/ci-cd.yml`](../.github/workflows/ci-cd.yml) roda a cada push:
+
+```
+qualidade (fmt · clippy -D warnings · cargo test) ─┐
+postgres  (testes no PostgreSQL real)             ─┼─► imagens (build front e back) ─► deploy
+```
+
+- **CI** (todo push e pull request): o código só passa se estiver formatado, sem avisos do
+  clippy e com todos os testes verdes, inclusive no PostgreSQL; as duas imagens Docker são construídas.
+- **CD** (push na `main`): as imagens são publicadas em
+  `ghcr.io/henriquesha/ticket-system-back` e `ghcr.io/henriquesha/ticket-system-front`
+  (tags `latest` e o hash do commit). Se o servidor estiver configurado, ele é atualizado por SSH.
+
+### Ligar o deploy automático (servidor AWS)
+
+1. No servidor (ex.: EC2 com Docker): `git clone https://github.com/HenriqueSHA/Ticket-System.git`,
+   `cp .env.example .env` e ajustar: senha do banco, `DADOS_DEMONSTRACAO=false`, `ADMIN_*` e
+   `IMAGEM_BACK`/`IMAGEM_FRONT` apontando para as imagens do ghcr.io.
+2. Deixar os pacotes do ghcr.io públicos (GitHub → Packages → Package settings) **ou** rodar
+   `docker login ghcr.io` no servidor com um token de leitura de pacotes.
+3. No GitHub, em *Settings → Secrets and variables → Actions*, cadastrar `SERVIDOR_HOST`,
+   `SERVIDOR_USUARIO`, `SERVIDOR_CHAVE_SSH` (chave privada) e, se a pasta não for
+   `~/Ticket-System`, `SERVIDOR_PASTA`.
+
+A partir daí, cada push na `main` que passar na CI faz `git pull`, `docker compose pull` e
+`docker compose up -d` no servidor. Sem esses secrets, o job de deploy só registra um aviso.
+
 ## Testes
 
 ```bash
