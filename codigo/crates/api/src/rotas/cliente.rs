@@ -26,7 +26,11 @@ pub async fn historico(State(e): State<EstadoApi>, a: Autenticado) -> RespostaAp
     Ok(Json(e.app.vendas.historico(&a.sessao).await?))
 }
 
-pub async fn comprovante(State(e): State<EstadoApi>, a: Autenticado, Path(id): Path<i64>) -> RespostaApi<ItemHistorico> {
+pub async fn comprovante(
+    State(e): State<EstadoApi>,
+    a: Autenticado,
+    Path(id): Path<i64>,
+) -> RespostaApi<ItemHistorico> {
     Ok(Json(e.app.vendas.comprovante(&a.sessao, id).await?))
 }
 

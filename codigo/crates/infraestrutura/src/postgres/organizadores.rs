@@ -124,10 +124,7 @@ impl RepositorioOrganizadores for RepositorioOrganizadoresPg {
 
     async fn remover(&self, o: &Organizador) -> Resultado<()> {
         let mut tx = self.pool.begin().await.map_err(erro_bd)?;
-        for sql in [
-            "DELETE FROM eventos WHERE organizador_id = $1",
-            "DELETE FROM organizadores WHERE id = $1",
-        ] {
+        for sql in ["DELETE FROM eventos WHERE organizador_id = $1", "DELETE FROM organizadores WHERE id = $1"] {
             sqlx::query(sql).bind(o.id()).execute(&mut *tx).await.map_err(erro_bd)?;
         }
         sqlx::query("DELETE FROM usuarios WHERE id = $1")

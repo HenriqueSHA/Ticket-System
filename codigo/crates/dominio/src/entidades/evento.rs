@@ -132,7 +132,13 @@ pub struct Evento {
 }
 
 impl Evento {
-    pub fn reconstruir(id: i64, organizador_id: i64, dados: DadosEvento, total_vendido: i32, status: StatusEvento) -> Self {
+    pub fn reconstruir(
+        id: i64,
+        organizador_id: i64,
+        dados: DadosEvento,
+        total_vendido: i32,
+        status: StatusEvento,
+    ) -> Self {
         Evento { id, organizador_id, dados, total_vendido, status }
     }
 
@@ -219,7 +225,13 @@ impl Evento {
 
     /// Altera os dados do evento. A nova capacidade não pode ser menor que a soma das
     /// quantidades das categorias já cadastradas (`soma_categorias`).
-    pub fn alterar(&mut self, dados: DadosEvento, status: StatusEvento, hoje: NaiveDate, soma_categorias: i32) -> Resultado<()> {
+    pub fn alterar(
+        &mut self,
+        dados: DadosEvento,
+        status: StatusEvento,
+        hoje: NaiveDate,
+        soma_categorias: i32,
+    ) -> Resultado<()> {
         dados.validar(hoje)?;
         if dados.capacidade < soma_categorias {
             return Err(Erro::regra(format!(

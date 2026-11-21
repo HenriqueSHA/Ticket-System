@@ -20,7 +20,9 @@ async fn main() {
             std::process::exit(1);
         }
     };
-    println!("\n  Sistema de Ingressos (front) no ar:  http://{endereco}\n  Back-end: {url_back}\n  (Ctrl+C para encerrar)");
+    println!(
+        "\n  Sistema de Ingressos (front) no ar:  http://{endereco}\n  Back-end: {url_back}\n  (Ctrl+C para encerrar)"
+    );
     let servidor = axum::serve(listener, rotas::criar(Estado::novo(&url_back, cookies_seguros)))
         .with_graceful_shutdown(encerramento());
     if let Err(e) = servidor.await {

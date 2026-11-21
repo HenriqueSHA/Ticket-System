@@ -1,9 +1,9 @@
 use async_trait::async_trait;
 use chrono::NaiveDate;
-use dominio::{Erro, Resultado};
 use dominio::entidades::*;
 use dominio::portas::RepositorioEventos;
 use dominio::valores::Dinheiro;
+use dominio::{Erro, Resultado};
 use sqlx::postgres::PgRow;
 use sqlx::{PgPool, Postgres, Row, Transaction};
 
@@ -69,7 +69,11 @@ fn ler_assento(r: &PgRow) -> Resultado<Assento> {
 }
 
 /// Grava uma categoria e gera a matriz de assentos (gerarAssentos: dois laços aninhados).
-async fn inserir_categoria(tx: &mut Transaction<'_, Postgres>, evento_id: i64, cat: &NovaCategoria) -> Resultado<Ingresso> {
+async fn inserir_categoria(
+    tx: &mut Transaction<'_, Postgres>,
+    evento_id: i64,
+    cat: &NovaCategoria,
+) -> Resultado<Ingresso> {
     let setor = cat.setor();
     let ingresso_id: i64 = sqlx::query_scalar(
         "INSERT INTO ingressos (evento_id, categoria, preco_centavos, quantidade, disponivel, com_assento,
@@ -260,11 +264,13 @@ impl RepositorioEventos for RepositorioEventosPg {
     }
 
     async fn remover_categoria(&self, ingresso_id: i64) -> Resultado<()> {
-        let r = sqlx::query("DELETE FROM ingressos WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM vendas WHERE ingresso_id = $1)")
-            .bind(ingresso_id)
-            .execute(&self.pool)
-            .await
-            .map_err(erro_bd)?;
+        let r = sqlx::query(
+            "DELETE FROM ingressos WHERE id = $1 AND NOT EXISTS (SELECT 1 FROM vendas WHERE ingresso_id = $1)",
+        )
+        .bind(ingresso_id)
+        .execute(&self.pool)
+        .await
+        .map_err(erro_bd)?;
         if r.rows_affected() == 0 {
             return Err(Erro::regra("esta categoria já tem vendas e não pode ser removida"));
         }
@@ -296,7 +302,8 @@ impl RepositorioEventos for RepositorioEventosPg {
     }
 
     async fn buscar_assento(&self, ingresso_id: i64, fileira: &str, numero: i32) -> Resultado<Option<Assento>> {
-        let sql = format!("SELECT {COLUNAS_ASSENTO} FROM assentos WHERE ingresso_id = $1 AND fileira = $2 AND numero = $3");
+        let sql =
+            format!("SELECT {COLUNAS_ASSENTO} FROM assentos WHERE ingresso_id = $1 AND fileira = $2 AND numero = $3");
         let linha = sqlx::query(&sql)
             .bind(ingresso_id)
             .bind(fileira)

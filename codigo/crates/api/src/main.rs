@@ -78,10 +78,20 @@ async fn preparar_dados_iniciais(app: &Aplicacao) {
     }
     let nome = var("ADMIN_NOME");
     let nome = if nome.is_empty() { "Administrador".to_string() } else { nome };
-    match dados_exemplo::criar_superadmin_se_vazio(app, &nome, &var("ADMIN_CPF"), &var("ADMIN_EMAIL"), &var("ADMIN_SENHA")).await {
+    match dados_exemplo::criar_superadmin_se_vazio(
+        app,
+        &nome,
+        &var("ADMIN_CPF"),
+        &var("ADMIN_EMAIL"),
+        &var("ADMIN_SENHA"),
+    )
+    .await
+    {
         Ok(true) => println!("Banco vazio: SuperAdmin {} criado.", var("ADMIN_EMAIL")),
         Ok(false) => {}
-        Err(e) => eprintln!("✖ Não foi possível criar o SuperAdmin ({e}). Confira ADMIN_CPF, ADMIN_EMAIL e ADMIN_SENHA no .env."),
+        Err(e) => eprintln!(
+            "✖ Não foi possível criar o SuperAdmin ({e}). Confira ADMIN_CPF, ADMIN_EMAIL e ADMIN_SENHA no .env."
+        ),
     }
 }
 

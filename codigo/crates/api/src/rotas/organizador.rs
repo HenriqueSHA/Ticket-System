@@ -46,7 +46,11 @@ pub async fn cadastrar(
     Ok((StatusCode::CREATED, Json(evento)))
 }
 
-pub async fn gerenciar(State(e): State<EstadoApi>, a: Autenticado, Path(id): Path<i64>) -> RespostaApi<EventoComCategorias> {
+pub async fn gerenciar(
+    State(e): State<EstadoApi>,
+    a: Autenticado,
+    Path(id): Path<i64>,
+) -> RespostaApi<EventoComCategorias> {
     let (evento, categorias) = e.app.eventos.gerenciar(&a.sessao, id).await?;
     Ok(Json(EventoComCategorias { evento, categorias }))
 }
@@ -90,7 +94,8 @@ pub async fn alterar_categoria(
     Path((id, categoria)): Path<(i64, i64)>,
     Corpo(alt): Corpo<CategoriaAlterada>,
 ) -> RespostaApi<Ingresso> {
-    let ingresso = e.app.eventos.alterar_categoria(&a.sessao, id, categoria, &alt.nome, alt.preco, alt.quantidade).await?;
+    let ingresso =
+        e.app.eventos.alterar_categoria(&a.sessao, id, categoria, &alt.nome, alt.preco, alt.quantidade).await?;
     Ok(Json(ingresso))
 }
 
@@ -104,11 +109,19 @@ pub async fn remover_categoria(
 }
 
 /// Algoritmo 6 — relatório do evento.
-pub async fn relatorio(State(e): State<EstadoApi>, a: Autenticado, Path(id): Path<i64>) -> RespostaApi<RelatorioEvento> {
+pub async fn relatorio(
+    State(e): State<EstadoApi>,
+    a: Autenticado,
+    Path(id): Path<i64>,
+) -> RespostaApi<RelatorioEvento> {
     Ok(Json(e.app.relatorios.relatorio(&a.sessao, id).await?))
 }
 
-pub async fn vendas(State(e): State<EstadoApi>, a: Autenticado, Path(id): Path<i64>) -> RespostaApi<Vec<VendaDetalhada>> {
+pub async fn vendas(
+    State(e): State<EstadoApi>,
+    a: Autenticado,
+    Path(id): Path<i64>,
+) -> RespostaApi<Vec<VendaDetalhada>> {
     Ok(Json(e.app.relatorios.vendas_do_evento(&a.sessao, id).await?))
 }
 

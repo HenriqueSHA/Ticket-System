@@ -99,10 +99,7 @@ pub(crate) async fn hoje(estado: &Estado) -> chrono::NaiveDate {
 
 /// Lê um número inteiro de um campo de formulário.
 pub(crate) fn inteiro(texto: &str, campo: &str) -> Resultado<i32> {
-    texto
-        .trim()
-        .parse()
-        .map_err(|_| Erro::validacao(format!("o campo \"{campo}\" deve ser um número inteiro")))
+    texto.trim().parse().map_err(|_| Erro::validacao(format!("o campo \"{campo}\" deve ser um número inteiro")))
 }
 
 /// Executa e, se der erro, devolve a página de erro (o `RETORNE` dos fluxogramas).

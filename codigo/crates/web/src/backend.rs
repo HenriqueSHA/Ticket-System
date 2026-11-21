@@ -167,11 +167,18 @@ impl ApiEventos {
     }
 
     pub async fn gerenciar(&self, s: &Sessao, evento_id: i64) -> Resultado<(Evento, Vec<Ingresso>)> {
-        let e: EventoComCategorias = self.0.get(&format!("/api/organizador/eventos/{evento_id}"), Some(&s.token)).await?;
+        let e: EventoComCategorias =
+            self.0.get(&format!("/api/organizador/eventos/{evento_id}"), Some(&s.token)).await?;
         Ok((e.evento, e.categorias))
     }
 
-    pub async fn alterar(&self, s: &Sessao, evento_id: i64, dados: DadosEvento, status: StatusEvento) -> Resultado<Evento> {
+    pub async fn alterar(
+        &self,
+        s: &Sessao,
+        evento_id: i64,
+        dados: DadosEvento,
+        status: StatusEvento,
+    ) -> Resultado<Evento> {
         let corpo = EventoAlterado { dados, status };
         self.0.enviar(Method::PUT, &format!("/api/organizador/eventos/{evento_id}"), Some(&s.token), &corpo).await
     }
@@ -180,12 +187,22 @@ impl ApiEventos {
         self.0.sem_corpo(Method::DELETE, &format!("/api/organizador/eventos/{evento_id}"), &s.token).await
     }
 
-    pub async fn adicionar_categoria(&self, s: &Sessao, evento_id: i64, categoria: &CategoriaNova) -> Resultado<Ingresso> {
+    pub async fn adicionar_categoria(
+        &self,
+        s: &Sessao,
+        evento_id: i64,
+        categoria: &CategoriaNova,
+    ) -> Resultado<Ingresso> {
         let caminho = format!("/api/organizador/eventos/{evento_id}/categorias");
         self.0.enviar(Method::POST, &caminho, Some(&s.token), categoria).await
     }
 
-    pub async fn categoria_do_organizador(&self, s: &Sessao, evento_id: i64, ingresso_id: i64) -> Resultado<(Evento, Ingresso)> {
+    pub async fn categoria_do_organizador(
+        &self,
+        s: &Sessao,
+        evento_id: i64,
+        ingresso_id: i64,
+    ) -> Resultado<(Evento, Ingresso)> {
         let caminho = format!("/api/organizador/eventos/{evento_id}/categorias/{ingresso_id}");
         let c: CategoriaDoEvento = self.0.get(&caminho, Some(&s.token)).await?;
         Ok((c.evento, c.ingresso))

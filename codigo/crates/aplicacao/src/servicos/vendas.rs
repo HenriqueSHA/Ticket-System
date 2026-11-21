@@ -37,17 +37,18 @@ pub struct ServicoVendas {
 }
 
 impl ServicoVendas {
-    pub fn new(eventos: Arc<dyn RepositorioEventos>, vendas: Arc<dyn RepositorioVendas>, relogio: Arc<dyn Relogio>) -> Self {
+    pub fn new(
+        eventos: Arc<dyn RepositorioEventos>,
+        vendas: Arc<dyn RepositorioVendas>,
+        relogio: Arc<dyn Relogio>,
+    ) -> Self {
         ServicoVendas { eventos, vendas, relogio }
     }
 
     /// Passo 1 do fluxograma 4: evento existe, está ABERTO, tem data futura e vagas?
     pub async fn evento_para_venda(&self, evento_id: i64) -> Resultado<Evento> {
-        let evento = self
-            .eventos
-            .buscar(evento_id)
-            .await?
-            .ok_or_else(|| Erro::nao_encontrado("evento não encontrado"))?;
+        let evento =
+            self.eventos.buscar(evento_id).await?.ok_or_else(|| Erro::nao_encontrado("evento não encontrado"))?;
         evento.verificar_disponivel_para_venda(self.relogio.hoje())?;
         Ok(evento)
     }
@@ -92,7 +93,14 @@ impl ServicoVendas {
             (_, false) => None,
         };
         let valor = pedido.tipo.politica().calcular(ingresso.preco());
-        Ok(ResumoCompra { evento, ingresso, assento, tipo: pedido.tipo, forma_pagamento: pedido.forma_pagamento, valor })
+        Ok(ResumoCompra {
+            evento,
+            ingresso,
+            assento,
+            tipo: pedido.tipo,
+            forma_pagamento: pedido.forma_pagamento,
+            valor,
+        })
     }
 
     /// Algoritmo 4 — confirma: verifica tudo de novo e grava de forma atômica.
@@ -115,16 +123,10 @@ impl ServicoVendas {
     /// Algoritmo 5 — cancelar compra.
     pub async fn cancelar(&self, sessao: &Sessao, venda_id: i64) -> Resultado<Venda> {
         sessao.exigir(Perfil::Cliente)?;
-        let mut venda = self
-            .vendas
-            .buscar(venda_id)
-            .await?
-            .ok_or_else(|| Erro::nao_encontrado("compra não encontrada"))?;
-        let evento = self
-            .eventos
-            .buscar(venda.evento_id())
-            .await?
-            .ok_or_else(|| Erro::nao_encontrado("evento da compra"))?;
+        let mut venda =
+            self.vendas.buscar(venda_id).await?.ok_or_else(|| Erro::nao_encontrado("compra não encontrada"))?;
+        let evento =
+            self.eventos.buscar(venda.evento_id()).await?.ok_or_else(|| Erro::nao_encontrado("evento da compra"))?;
         venda.verificar_cancelamento(sessao.usuario_id, &evento, self.relogio.hoje())?;
         self.vendas.cancelar(&venda).await?;
         venda.marcar_cancelada();

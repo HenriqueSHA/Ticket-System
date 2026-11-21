@@ -29,7 +29,13 @@ fn hora(h: u32) -> NaiveTime {
 
 /// Em produção (sem dados de demonstração): cria só o SuperAdmin informado, se o banco estiver
 /// vazio. Devolve `true` se criou.
-pub async fn criar_superadmin_se_vazio(app: &Aplicacao, nome: &str, cpf: &str, email: &str, senha: &str) -> Resultado<bool> {
+pub async fn criar_superadmin_se_vazio(
+    app: &Aplicacao,
+    nome: &str,
+    cpf: &str,
+    email: &str,
+    senha: &str,
+) -> Resultado<bool> {
     if app.usuarios.contar().await? > 0 {
         return Ok(false);
     }
@@ -67,15 +73,46 @@ pub async fn popular_se_vazio(app: &Aplicacao) -> Resultado<bool> {
     let s_arena = app.autenticacao.entrar(LOGINS[2].1, LOGINS[2].2).await?;
 
     let eventos = [
-        (&s_sol, "Show de Rock — Banda Trovão", "Turnê de 20 anos da banda", "Arena Salvador", 20, 21, 160, true,
-         vec![NovaCategoria::sem_assento("Pista", reais(120), 100)?,
-              NovaCategoria::com_assento("Cadeira", reais(180), 5, 8)?,
-              NovaCategoria::com_assento("Camarote", reais(350), 2, 10)?]),
-        (&s_sol, "Noite do Stand-up", "Quatro comediantes em uma noite", "Teatro Castro Alves", 35, 20, 60, false,
-         vec![NovaCategoria::com_assento("Plateia", reais(80), 6, 10)?]),
-        (&s_arena, "Festival de Jazz de Verão", "Dois palcos ao ar livre", "Pelourinho", 50, 18, 300, true,
-         vec![NovaCategoria::sem_assento("Pista", reais(90), 250)?,
-              NovaCategoria::sem_assento("VIP", reais(200), 50)?]),
+        (
+            &s_sol,
+            "Show de Rock — Banda Trovão",
+            "Turnê de 20 anos da banda",
+            "Arena Salvador",
+            20,
+            21,
+            160,
+            true,
+            vec![
+                NovaCategoria::sem_assento("Pista", reais(120), 100)?,
+                NovaCategoria::com_assento("Cadeira", reais(180), 5, 8)?,
+                NovaCategoria::com_assento("Camarote", reais(350), 2, 10)?,
+            ],
+        ),
+        (
+            &s_sol,
+            "Noite do Stand-up",
+            "Quatro comediantes em uma noite",
+            "Teatro Castro Alves",
+            35,
+            20,
+            60,
+            false,
+            vec![NovaCategoria::com_assento("Plateia", reais(80), 6, 10)?],
+        ),
+        (
+            &s_arena,
+            "Festival de Jazz de Verão",
+            "Dois palcos ao ar livre",
+            "Pelourinho",
+            50,
+            18,
+            300,
+            true,
+            vec![
+                NovaCategoria::sem_assento("Pista", reais(90), 250)?,
+                NovaCategoria::sem_assento("VIP", reais(200), 50)?,
+            ],
+        ),
     ];
     let mut criados = Vec::new();
     for (sessao, nome, descricao, local, dias, h, capacidade, cancela, categorias) in eventos {

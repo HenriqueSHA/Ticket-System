@@ -1,10 +1,10 @@
 //! Páginas sem login: entrada, criação de conta e saída (Algoritmos 1 e 2).
 
-use contrato::{CadastroCliente, CadastroOrganizador};
 use axum::Form;
 use axum::extract::State;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::CookieJar;
+use contrato::{CadastroCliente, CadastroOrganizador};
 use dominio::entidades::Perfil;
 use serde::Deserialize;
 

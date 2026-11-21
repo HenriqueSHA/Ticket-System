@@ -88,7 +88,12 @@ impl ServicoEventos {
     }
 
     /// Nova categoria em um evento já cadastrado (mesmas regras do laço do Algoritmo 3).
-    pub async fn adicionar_categoria(&self, sessao: &Sessao, evento_id: i64, categoria: NovaCategoria) -> Resultado<Ingresso> {
+    pub async fn adicionar_categoria(
+        &self,
+        sessao: &Sessao,
+        evento_id: i64,
+        categoria: NovaCategoria,
+    ) -> Resultado<Ingresso> {
         let evento = self.evento_do_organizador(sessao, evento_id).await?;
         evento.verificar_gerenciavel(self.relogio.hoje())?;
         let soma = soma_quantidades(&self.eventos.listar_categorias(evento_id).await?);
@@ -97,7 +102,12 @@ impl ServicoEventos {
     }
 
     /// Categoria do evento do organizador (para o formulário de edição).
-    pub async fn categoria_do_organizador(&self, sessao: &Sessao, evento_id: i64, ingresso_id: i64) -> Resultado<(Evento, Ingresso)> {
+    pub async fn categoria_do_organizador(
+        &self,
+        sessao: &Sessao,
+        evento_id: i64,
+        ingresso_id: i64,
+    ) -> Resultado<(Evento, Ingresso)> {
         let (evento, categorias) = self.gerenciar(sessao, evento_id).await?;
         let ingresso = categorias
             .into_iter()
@@ -126,7 +136,8 @@ impl ServicoEventos {
         ingresso.alterar(nome, preco)?;
         if let Some(nova) = quantidade.filter(|q| *q != ingresso.quantidade()) {
             ingresso.alterar_quantidade(nova)?;
-            let soma_outras = soma_quantidades(&categorias) - categorias.iter().find(|c| c.id() == ingresso_id).map_or(0, Ingresso::quantidade);
+            let soma_outras = soma_quantidades(&categorias)
+                - categorias.iter().find(|c| c.id() == ingresso_id).map_or(0, Ingresso::quantidade);
             evento.verificar_capacidade_para(soma_outras, nova)?;
         }
         self.eventos.atualizar_categoria(&ingresso).await?;
@@ -172,7 +183,10 @@ impl ServicoEventos {
     }
 
     /// Eventos do organizador logado, com as categorias.
-    pub async fn listar_do_organizador_com_categorias(&self, sessao: &Sessao) -> Resultado<Vec<(Evento, Vec<Ingresso>)>> {
+    pub async fn listar_do_organizador_com_categorias(
+        &self,
+        sessao: &Sessao,
+    ) -> Resultado<Vec<(Evento, Vec<Ingresso>)>> {
         let eventos = self.listar_do_organizador(sessao).await?;
         self.com_categorias(eventos).await
     }

@@ -38,13 +38,21 @@ async fn subir_com_validade(validade: std::time::Duration) -> Api {
     dados_exemplo::popular_se_vazio(&app).await.unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, rotas::criar(EstadoApi::com_validade(app, validade))).await.unwrap() });
+    tokio::spawn(
+        async move { axum::serve(listener, rotas::criar(EstadoApi::com_validade(app, validade))).await.unwrap() },
+    );
     Api { base, http: Client::new() }
 }
 
 impl Api {
     /// Faz a requisição e devolve (código HTTP, corpo JSON bruto).
-    async fn pedir<C: Serialize>(&self, metodo: Method, caminho: &str, token: Option<&str>, corpo: Option<&C>) -> (StatusCode, String) {
+    async fn pedir<C: Serialize>(
+        &self,
+        metodo: Method,
+        caminho: &str,
+        token: Option<&str>,
+        corpo: Option<&C>,
+    ) -> (StatusCode, String) {
         let mut req = self.http.request(metodo, format!("{}{caminho}", self.base));
         if let Some(t) = token {
             req = req.bearer_auth(t);
@@ -69,14 +77,22 @@ impl Api {
     }
 
     /// Espera um erro: confere o código HTTP e devolve o `Erro` do corpo.
-    async fn falha<C: Serialize>(&self, metodo: Method, caminho: &str, token: Option<&str>, corpo: Option<&C>, esperado: StatusCode) -> Erro {
+    async fn falha<C: Serialize>(
+        &self,
+        metodo: Method,
+        caminho: &str,
+        token: Option<&str>,
+        corpo: Option<&C>,
+        esperado: StatusCode,
+    ) -> Erro {
         let (st, texto) = self.pedir(metodo, caminho, token, corpo).await;
         assert_eq!(st, esperado, "{caminho}: {texto}");
         serde_json::from_str(&texto).unwrap_or_else(|_| panic!("erro fora do formato JSON: {texto}"))
     }
 
     async fn entrar(&self, email: &str, senha: &str) -> String {
-        let r: RespostaLogin = self.post("/api/sessoes", None, &PedidoLogin { email: email.into(), senha: senha.into() }).await;
+        let r: RespostaLogin =
+            self.post("/api/sessoes", None, &PedidoLogin { email: email.into(), senha: senha.into() }).await;
         r.token
     }
 }
@@ -106,7 +122,13 @@ async fn saude_hoje_e_rota_inexistente() {
 async fn login_sessao_e_saida() {
     let api = subir().await;
     let e = api
-        .falha(Method::POST, "/api/sessoes", None, Some(&PedidoLogin { email: "ana@email.com".into(), senha: "errada".into() }), StatusCode::FORBIDDEN)
+        .falha(
+            Method::POST,
+            "/api/sessoes",
+            None,
+            Some(&PedidoLogin { email: "ana@email.com".into(), senha: "errada".into() }),
+            StatusCode::FORBIDDEN,
+        )
         .await;
     assert_eq!(e.mensagem(), "e-mail ou senha inválidos");
 
@@ -123,11 +145,30 @@ async fn login_sessao_e_saida() {
 #[tokio::test]
 async fn cadastro_de_cliente_e_organizador() {
     let api = subir().await;
-    let cliente = |cpf: &str, email: &str| CadastroCliente { nome: "Carla".into(), cpf: cpf.into(), email: email.into(), senha: "123456".into() };
+    let cliente = |cpf: &str, email: &str| CadastroCliente {
+        nome: "Carla".into(),
+        cpf: cpf.into(),
+        email: email.into(),
+        senha: "123456".into(),
+    };
     let criado: UsuarioCriado = api.post("/api/clientes", None, &cliente("987.654.321-00", "carla@email.com")).await;
     assert_eq!(criado.email, "carla@email.com");
-    api.falha(Method::POST, "/api/clientes", None, Some(&cliente("246.813.579-28", "CARLA@email.com")), StatusCode::CONFLICT).await;
-    api.falha(Method::POST, "/api/clientes", None, Some(&cliente("111.111.111-11", "x@y.com")), StatusCode::UNPROCESSABLE_ENTITY).await;
+    api.falha(
+        Method::POST,
+        "/api/clientes",
+        None,
+        Some(&cliente("246.813.579-28", "CARLA@email.com")),
+        StatusCode::CONFLICT,
+    )
+    .await;
+    api.falha(
+        Method::POST,
+        "/api/clientes",
+        None,
+        Some(&cliente("111.111.111-11", "x@y.com")),
+        StatusCode::UNPROCESSABLE_ENTITY,
+    )
+    .await;
     // JSON quebrado também volta no formato da API
     let (st, corpo) = api.pedir(Method::POST, "/api/clientes", None, Some(&serde_json::json!({"nome": 1}))).await;
     assert_eq!(st, StatusCode::UNPROCESSABLE_ENTITY);
@@ -170,7 +211,8 @@ async fn fluxo_de_compra_por_http() {
 
     let comprovante: ItemHistorico = api.get(&format!("/api/compras/{}", compra.venda.id()), Some(&token)).await;
     assert_eq!(comprovante.assento.as_deref(), Some("B2"));
-    let cancelada: Venda = api.post::<(), _>(&format!("/api/compras/{}/cancelamento", compra.venda.id()), Some(&token), &()).await;
+    let cancelada: Venda =
+        api.post::<(), _>(&format!("/api/compras/{}/cancelamento", compra.venda.id()), Some(&token), &()).await;
     assert_eq!(cancelada.status().nome(), "Cancelada");
     let mapa: MapaAssentos = api.get(&format!("/api/eventos/{id}/categorias/{}/mapa", cadeira.id()), None).await;
     assert_eq!(mapa.livres(), 38); // assento liberado
@@ -190,31 +232,55 @@ async fn organizador_cadastra_e_gerencia_evento_por_http() {
         capacidade: 100,
         permite_cancelamento: true,
     };
-    let categoria = |nome: &str, quantidade, setor| CategoriaNova { nome: nome.into(), preco: reais("50"), quantidade, setor };
+    let categoria =
+        |nome: &str, quantidade, setor| CategoriaNova { nome: nome.into(), preco: reais("50"), quantidade, setor };
 
     // duas categorias inválidas: as duas mensagens voltam juntas
     let ruim = EventoNovo {
         dados: dados.clone(),
-        categorias: vec![categoria("Pista", 0, None), categoria("Mesa", 0, Some(Setor { fileiras: 30, assentos_por_fileira: 5 }))],
+        categorias: vec![
+            categoria("Pista", 0, None),
+            categoria("Mesa", 0, Some(Setor { fileiras: 30, assentos_por_fileira: 5 })),
+        ],
     };
-    let e = api.falha(Method::POST, "/api/organizador/eventos", Some(&token), Some(&ruim), StatusCode::UNPROCESSABLE_ENTITY).await;
+    let e = api
+        .falha(Method::POST, "/api/organizador/eventos", Some(&token), Some(&ruim), StatusCode::UNPROCESSABLE_ENTITY)
+        .await;
     assert_eq!(e.mensagem().split(SEPARADOR_MENSAGENS).count(), 2);
 
     let bom = EventoNovo { dados, categorias: vec![categoria("Pista", 60, None)] };
     let evento: Evento = api.post("/api/organizador/eventos", Some(&token), &bom).await;
     let id = evento.id();
     let mesa: Ingresso = api
-        .post(&format!("/api/organizador/eventos/{id}/categorias"), Some(&token), &categoria("Mesa", 0, Some(Setor { fileiras: 4, assentos_por_fileira: 10 })))
+        .post(
+            &format!("/api/organizador/eventos/{id}/categorias"),
+            Some(&token),
+            &categoria("Mesa", 0, Some(Setor { fileiras: 4, assentos_por_fileira: 10 })),
+        )
         .await;
     assert_eq!(mesa.quantidade(), 40);
 
     let g: EventoComCategorias = api.get(&format!("/api/organizador/eventos/{id}"), Some(&token)).await;
     let pista = g.categorias.iter().find(|c| c.categoria() == "Pista").unwrap();
     let alt = CategoriaAlterada { nome: "Pista".into(), preco: reais("55,90"), quantidade: Some(50) };
-    let (st, texto) = api.pedir(Method::PUT, &format!("/api/organizador/eventos/{id}/categorias/{}", pista.id()), Some(&token), Some(&alt)).await;
+    let (st, texto) = api
+        .pedir(
+            Method::PUT,
+            &format!("/api/organizador/eventos/{id}/categorias/{}", pista.id()),
+            Some(&token),
+            Some(&alt),
+        )
+        .await;
     assert_eq!(st, StatusCode::OK, "{texto}");
     let alt = CategoriaAlterada { quantidade: Some(61), ..alt }; // 61 + 40 > 100
-    api.falha(Method::PUT, &format!("/api/organizador/eventos/{id}/categorias/{}", pista.id()), Some(&token), Some(&alt), StatusCode::CONFLICT).await;
+    api.falha(
+        Method::PUT,
+        &format!("/api/organizador/eventos/{id}/categorias/{}", pista.id()),
+        Some(&token),
+        Some(&alt),
+        StatusCode::CONFLICT,
+    )
+    .await;
 
     let r: RelatorioEvento = api.get(&format!("/api/organizador/eventos/{id}/relatorio"), Some(&token)).await;
     assert_eq!(r.vendidos, 0);
@@ -238,8 +304,14 @@ async fn permissoes_por_perfil() {
     // bloqueio pelo admin impede o login do organizador
     let id = orgs.iter().find(|o| o.razao_social() == "Sol Eventos Ltda").unwrap().id();
     let _: Organizador = api.post::<(), _>(&format!("/api/admin/organizadores/{id}/bloquear"), Some(&admin), &()).await;
-    api.falha(Method::POST, "/api/sessoes", None, Some(&PedidoLogin { email: "contato@soleventos.com".into(), senha: "sol12345".into() }), StatusCode::FORBIDDEN)
-        .await;
+    api.falha(
+        Method::POST,
+        "/api/sessoes",
+        None,
+        Some(&PedidoLogin { email: "contato@soleventos.com".into(), senha: "sol12345".into() }),
+        StatusCode::FORBIDDEN,
+    )
+    .await;
     // a sessão que já estava aberta também perde o acesso às funções de organizador
     api.falha::<()>(Method::GET, "/api/organizador/eventos", Some(&sol), None, StatusCode::FORBIDDEN).await;
 }

@@ -62,7 +62,14 @@ impl Tabelas {
                 for n in 1..=s.assentos_por_fileira {
                     let id = self.novo_id();
                     let fileira = letra_fileira(f as usize);
-                    self.assentos.push(Assento::reconstruir(id, ingresso.id(), cat.nome().into(), fileira, n, Situacao::Livre));
+                    self.assentos.push(Assento::reconstruir(
+                        id,
+                        ingresso.id(),
+                        cat.nome().into(),
+                        fileira,
+                        n,
+                        Situacao::Livre,
+                    ));
                 }
             }
         }
@@ -209,7 +216,8 @@ impl RepositorioEventos for RepositoriosMemoria {
         Ok(lista)
     }
     async fn listar_do_organizador(&self, organizador_id: i64) -> Resultado<Vec<Evento>> {
-        let mut lista: Vec<Evento> = self.t().eventos.iter().filter(|e| e.pertence_a(organizador_id)).cloned().collect();
+        let mut lista: Vec<Evento> =
+            self.t().eventos.iter().filter(|e| e.pertence_a(organizador_id)).cloned().collect();
         lista.sort_by_key(|e| (e.data(), e.horario()));
         Ok(lista)
     }
@@ -218,7 +226,13 @@ impl RepositorioEventos for RepositoriosMemoria {
     async fn atualizar(&self, evento: &Evento) -> Resultado<()> {
         let mut t = self.t();
         if let Some(e) = t.evento_mut(evento.id()) {
-            *e = Evento::reconstruir(evento.id(), e.organizador_id(), evento.dados().clone(), e.total_vendido(), evento.status());
+            *e = Evento::reconstruir(
+                evento.id(),
+                e.organizador_id(),
+                evento.dados().clone(),
+                e.total_vendido(),
+                evento.status(),
+            );
         }
         Ok(())
     }
@@ -373,8 +387,16 @@ impl RepositorioVendas for RepositoriosMemoria {
             .filter(|v| v.evento_id() == evento_id)
             .map(|v| VendaDetalhada {
                 venda: v.clone(),
-                cliente: t.usuarios.iter().find(|u| u.id() == v.cliente_id()).map_or_else(String::new, |u| u.nome().to_string()),
-                categoria: t.ingressos.iter().find(|i| i.id() == v.ingresso_id()).map_or_else(String::new, |i| i.categoria().to_string()),
+                cliente: t
+                    .usuarios
+                    .iter()
+                    .find(|u| u.id() == v.cliente_id())
+                    .map_or_else(String::new, |u| u.nome().to_string()),
+                categoria: t
+                    .ingressos
+                    .iter()
+                    .find(|i| i.id() == v.ingresso_id())
+                    .map_or_else(String::new, |i| i.categoria().to_string()),
                 assento: t.assentos.iter().find(|a| Some(a.id()) == v.assento_id()).map(Assento::rotulo),
             })
             .collect();

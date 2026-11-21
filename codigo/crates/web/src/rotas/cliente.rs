@@ -1,10 +1,10 @@
 //! Páginas do cliente: eventos, compra (Algoritmo 4), comprovante, histórico e cancelamento (Algoritmo 5).
 
-use contrato::Pedido;
 use axum::Form;
 use axum::extract::{Path, Query, State};
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::CookieJar;
+use contrato::Pedido;
 use dominio::entidades::{Codificavel, FormaPagamento, StatusVenda, TipoIngresso, total_disponivel};
 use dominio::{Erro, Resultado};
 use serde::Deserialize;
@@ -21,7 +21,8 @@ pub async fn eventos(State(estado): State<Estado>, Logado(s): Logado, jar: Cooki
         .map(|(evento, categorias)| CartaoEvento { disponiveis: total_disponivel(&categorias), evento, categorias })
         .collect();
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
-    (jar, render(PaginaEventos { layout: Layout::novo("Eventos disponíveis", Some(&s), aviso), cartoes })).into_response()
+    (jar, render(PaginaEventos { layout: Layout::novo("Eventos disponíveis", Some(&s), aviso), cartoes }))
+        .into_response()
 }
 
 #[derive(Deserialize)]
@@ -41,10 +42,8 @@ pub async fn comprar(
     // fluxograma 4, passo 1: o evento está à venda?
     let evento = tentar!(app.vendas.evento_para_venda(id).await, s, "/eventos");
     let categorias = tentar!(app.eventos.categorias(id).await, s, "/eventos");
-    let escolhida = escolha
-        .categoria
-        .or_else(|| categorias.iter().find(|c| !c.esgotado()).map(|c| c.id()))
-        .unwrap_or_default();
+    let escolhida =
+        escolha.categoria.or_else(|| categorias.iter().find(|c| !c.esgotado()).map(|c| c.id())).unwrap_or_default();
     // passo 2: a categoria existe e tem ingressos?
     let voltar = format!("/eventos/{id}");
     let ingresso = tentar!(app.vendas.ingresso_para_venda(&evento, escolhida).await, s, voltar);
@@ -74,7 +73,11 @@ pub struct FormCompra {
 
 /// Converte o formulário no pedido (tipo, assento "B-2" e forma de pagamento).
 fn montar_pedido(evento_id: i64, f: &FormCompra) -> Resultado<Pedido> {
-    let tipo = f.tipo.as_deref().and_then(TipoIngresso::de_codigo).ok_or_else(|| Erro::validacao("escolha inteira ou meia-entrada"))?;
+    let tipo = f
+        .tipo
+        .as_deref()
+        .and_then(TipoIngresso::de_codigo)
+        .ok_or_else(|| Erro::validacao("escolha inteira ou meia-entrada"))?;
     let forma_pagamento = f
         .pagamento
         .as_deref()
@@ -134,10 +137,16 @@ pub async fn confirmar(
     }
 }
 
-pub async fn comprovante(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
+pub async fn comprovante(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Path(id): Path<i64>,
+) -> Response {
     let item = tentar!(estado.back.vendas.comprovante(&s, id).await, s, "/meus-ingressos");
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
-    let pagina = PaginaComprovante { layout: Layout::novo("Comprovante", Some(&s), aviso), cliente: s.nome.clone(), item };
+    let pagina =
+        PaginaComprovante { layout: Layout::novo("Comprovante", Some(&s), aviso), cliente: s.nome.clone(), item };
     (jar, render(pagina)).into_response()
 }
 
@@ -153,11 +162,17 @@ pub async fn meus_ingressos(State(estado): State<Estado>, Logado(s): Logado, jar
         })
         .collect();
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
-    (jar, render(PaginaMeusIngressos { layout: Layout::novo("Meus ingressos", Some(&s), aviso), linhas })).into_response()
+    (jar, render(PaginaMeusIngressos { layout: Layout::novo("Meus ingressos", Some(&s), aviso), linhas }))
+        .into_response()
 }
 
 /// Algoritmo 5 — cancelar compra.
-pub async fn cancelar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
+pub async fn cancelar(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Path(id): Path<i64>,
+) -> Response {
     let aviso = match estado.back.vendas.cancelar(&s, id).await {
         Ok(v) => Aviso::sucesso(format!("Compra nº {} cancelada. Valor a estornar: {}.", v.id(), v.valor())),
         Err(e) => Aviso::erro(e.mensagem()),

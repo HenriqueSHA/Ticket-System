@@ -117,7 +117,8 @@ async fn cliente_compra_pelo_navegador() {
 async fn cadastros_pelas_telas() {
     let front = subir().await;
     let n = navegador();
-    let cliente = |cpf: &'static str| [("nome", "Carla"), ("cpf", cpf), ("email", "carla@email.com"), ("senha", "123456")];
+    let cliente =
+        |cpf: &'static str| [("nome", "Carla"), ("cpf", cpf), ("email", "carla@email.com"), ("senha", "123456")];
     let (destino, html) = enviar(&n, &format!("{front}/cadastro"), &cliente("111.111.111-11")).await;
     assert_eq!(destino, "/cadastro");
     assert!(html.contains("CPF inválido") && html.contains("value=\"carla@email.com\""), "erro e campos preservados");
@@ -127,7 +128,13 @@ async fn cadastros_pelas_telas() {
     let (_, html) = enviar(&n, &format!("{front}/cadastro"), &cliente("246.813.579-28")).await;
     assert!(html.contains("já existe um usuário com este e-mail"));
 
-    let org = [("razao_social", "Produtora Alfa"), ("cnpj", "12.ABC.345/01DE-35"), ("contato", "71 9999"), ("email", "alfa@p.com"), ("senha", "alfa1234")];
+    let org = [
+        ("razao_social", "Produtora Alfa"),
+        ("cnpj", "12.ABC.345/01DE-35"),
+        ("contato", "71 9999"),
+        ("email", "alfa@p.com"),
+        ("senha", "alfa1234"),
+    ];
     let (destino, _) = enviar(&n, &format!("{front}/cadastro/organizador"), &org).await;
     assert_eq!(destino, "/entrar");
     assert_eq!(entrar(&n, &front, "alfa@p.com", "alfa1234").await, "/organizador/eventos");
@@ -139,18 +146,47 @@ async fn organizador_cria_evento_pelas_telas() {
     let n = navegador();
     entrar(&n, &front, "contato@soleventos.com", "sol12345").await;
     let data = hoje().checked_add_days(Days::new(10)).unwrap().format("%Y-%m-%d").to_string();
-    let base = [("nome", "Festa"), ("descricao", ""), ("local", "Praça"), ("data", data.as_str()), ("horario", "20:00"), ("capacidade", "100"), ("permite_cancelamento", "on")];
+    let base = [
+        ("nome", "Festa"),
+        ("descricao", ""),
+        ("local", "Praça"),
+        ("data", data.as_str()),
+        ("horario", "20:00"),
+        ("capacidade", "100"),
+        ("permite_cancelamento", "on"),
+    ];
 
     // duas categorias inválidas (quantidade 0 e 30 fileiras): as duas mensagens aparecem
     let mut ruim: Vec<(&str, &str)> = base.to_vec();
-    ruim.extend([("cat_nome", "Pista"), ("cat_preco", "50"), ("cat_assento", "nao"), ("cat_quantidade", "0"), ("cat_fileiras", ""), ("cat_por_fileira", "")]);
-    ruim.extend([("cat_nome", "Mesa"), ("cat_preco", "90"), ("cat_assento", "sim"), ("cat_quantidade", ""), ("cat_fileiras", "30"), ("cat_por_fileira", "5")]);
+    ruim.extend([
+        ("cat_nome", "Pista"),
+        ("cat_preco", "50"),
+        ("cat_assento", "nao"),
+        ("cat_quantidade", "0"),
+        ("cat_fileiras", ""),
+        ("cat_por_fileira", ""),
+    ]);
+    ruim.extend([
+        ("cat_nome", "Mesa"),
+        ("cat_preco", "90"),
+        ("cat_assento", "sim"),
+        ("cat_quantidade", ""),
+        ("cat_fileiras", "30"),
+        ("cat_por_fileira", "5"),
+    ]);
     let (destino, html) = enviar(&n, &format!("{front}/organizador/eventos/novo"), &ruim).await;
     assert_eq!(destino, "/organizador/eventos/novo");
     assert!(html.contains("Categoria 1 (Pista)") && html.contains("Categoria 2 (Mesa)"));
 
     let mut bom: Vec<(&str, &str)> = base.to_vec();
-    bom.extend([("cat_nome", "Pista"), ("cat_preco", "50,00"), ("cat_assento", "nao"), ("cat_quantidade", "60"), ("cat_fileiras", ""), ("cat_por_fileira", "")]);
+    bom.extend([
+        ("cat_nome", "Pista"),
+        ("cat_preco", "50,00"),
+        ("cat_assento", "nao"),
+        ("cat_quantidade", "60"),
+        ("cat_fileiras", ""),
+        ("cat_por_fileira", ""),
+    ]);
     let (destino, html) = enviar(&n, &format!("{front}/organizador/eventos/novo"), &bom).await;
     assert!(destino.starts_with("/organizador/eventos/"), "{destino}");
     assert!(html.contains("Festa") && html.contains("Ingressos por categoria"));
@@ -164,7 +200,8 @@ async fn back_fora_do_ar_mostra_mensagem_amigavel() {
     drop(livre);
     let front = subir_front(&url_morta).await;
     let n = navegador();
-    let (destino, html) = enviar(&n, &format!("{front}/entrar"), &[("email", "ana@email.com"), ("senha", "ana12345")]).await;
+    let (destino, html) =
+        enviar(&n, &format!("{front}/entrar"), &[("email", "ana@email.com"), ("senha", "ana12345")]).await;
     assert_eq!(destino, "/entrar");
     assert!(html.contains("indisponível"), "{html}");
 }
@@ -175,7 +212,13 @@ async fn nome_malicioso_nao_vira_codigo() {
     let front = subir().await;
     let n = navegador();
     let malicioso = "Produtora x'); alert(1);//<script>alert(2)</script>";
-    let org = [("razao_social", malicioso), ("cnpj", "33.444.555/0001-81"), ("contato", "71"), ("email", "x@x.com"), ("senha", "123456")];
+    let org = [
+        ("razao_social", malicioso),
+        ("cnpj", "33.444.555/0001-81"),
+        ("contato", "71"),
+        ("email", "x@x.com"),
+        ("senha", "123456"),
+    ];
     let (destino, _) = enviar(&n, &format!("{front}/cadastro/organizador"), &org).await;
     assert_eq!(destino, "/entrar");
 

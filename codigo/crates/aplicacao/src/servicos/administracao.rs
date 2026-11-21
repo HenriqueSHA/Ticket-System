@@ -36,10 +36,7 @@ impl ServicoAdministracao {
 
     pub async fn buscar(&self, sessao: &Sessao, id: i64) -> Resultado<Organizador> {
         sessao.exigir(Perfil::SuperAdmin)?;
-        self.organizadores
-            .buscar_por_id(id)
-            .await?
-            .ok_or_else(|| Erro::nao_encontrado("organizador não encontrado"))
+        self.organizadores.buscar_por_id(id).await?.ok_or_else(|| Erro::nao_encontrado("organizador não encontrado"))
     }
 
     pub async fn ativar(&self, sessao: &Sessao, id: i64) -> Resultado<Organizador> {

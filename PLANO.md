@@ -60,7 +60,7 @@ navegador ──► front (web, :3000) ──HTTP/JSON──► back (api, :8080
   (XSS nos `confirm()`, senhas de demonstração em produção, detalhe técnico vazando para a tela,
   sessões/avisos sem validade, memória sobrescrevendo total vendido, N+1 consultas, índices)
 - [ ] 3.3 Testes que faltam: front (renderização/rotas com back falso), API, PostgreSQL
-- [ ] 3.4 `cargo fmt` em tudo + configuração (`rustfmt.toml`)
+- [x] 3.4 `cargo fmt` em tudo + configuração (`rustfmt.toml`)
 - [ ] 3.5 GitHub Actions — **CI** em todo push/PR: fmt, clippy (sem avisos), testes, testes no PostgreSQL (serviço do Actions), build das imagens Docker
 - [ ] 3.6 GitHub Actions — **CD** na `main`: publicar as imagens `front` e `back` no GitHub Container Registry; servidor atualiza com `docker compose pull && docker compose up -d`
 - [ ] 3.7 Ver a pipeline verde no GitHub

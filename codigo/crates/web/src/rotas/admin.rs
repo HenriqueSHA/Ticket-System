@@ -1,10 +1,10 @@
 //! Páginas do SuperAdmin: gestão de organizadores (Algoritmo 7).
 
-use contrato::CadastroOrganizador;
 use axum::Form;
 use axum::extract::{Path, State};
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::CookieJar;
+use contrato::CadastroOrganizador;
 use dominio::Erro;
 use serde::Deserialize;
 
@@ -47,7 +47,12 @@ pub struct FormOrganizador {
     senha: String,
 }
 
-pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Form(f): Form<FormOrganizador>) -> Response {
+pub async fn criar(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Form(f): Form<FormOrganizador>,
+) -> Response {
     let dados = CadastroOrganizador {
         razao_social: f.razao_social,
         cnpj: f.cnpj,
@@ -56,7 +61,12 @@ pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJ
         senha: f.senha,
     };
     match estado.back.administracao.cadastrar_organizador(&s, &dados).await {
-        Ok(org) => redirecionar(&estado, jar, LISTA, Aviso::sucesso(format!("Organizador \"{}\" cadastrado.", org.razao_social()))),
+        Ok(org) => redirecionar(
+            &estado,
+            jar,
+            LISTA,
+            Aviso::sucesso(format!("Organizador \"{}\" cadastrado.", org.razao_social())),
+        ),
         Err(e) => render(PaginaFormOrganizador {
             layout: Layout::novo("Novo organizador", Some(&s), None),
             acao: "/admin/organizadores/novo".into(),
@@ -92,7 +102,12 @@ pub async fn editar(
     Form(f): Form<FormOrganizador>,
 ) -> Response {
     match estado.back.administracao.editar(&s, id, &f.razao_social, &f.contato).await {
-        Ok(org) => redirecionar(&estado, jar, LISTA, Aviso::sucesso(format!("Dados de \"{}\" atualizados.", org.razao_social()))),
+        Ok(org) => redirecionar(
+            &estado,
+            jar,
+            LISTA,
+            Aviso::sucesso(format!("Dados de \"{}\" atualizados.", org.razao_social())),
+        ),
         Err(e) => render(PaginaFormOrganizador {
             layout: Layout::novo("Editar organizador", Some(&s), None),
             acao: format!("/admin/organizadores/{id}/editar"),
@@ -107,7 +122,12 @@ pub async fn editar(
 }
 
 /// Ativar, bloquear ou remover (escolha do fluxograma 7).
-pub async fn acao(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path((id, acao)): Path<(i64, String)>) -> Response {
+pub async fn acao(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Path((id, acao)): Path<(i64, String)>,
+) -> Response {
     let adm = &estado.back.administracao;
     let resultado = match acao.as_str() {
         "ativar" => adm.ativar(&s, id).await.map(|o| format!("\"{}\" ativado.", o.razao_social())),

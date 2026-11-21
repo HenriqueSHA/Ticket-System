@@ -96,7 +96,8 @@ async fn teste1_normal_compra_com_assento_marcado() {
     let (show, cadeira) = c.categoria("Show", "Cadeira").await;
     assert_eq!(c.disponivel(&show, &cadeira).await, 38);
 
-    let (venda, resumo) = c.app.vendas.confirmar(&ana, &pedido(&show, &cadeira, TipoIngresso::Inteira, Some(("B", 2)))).await.unwrap();
+    let (venda, resumo) =
+        c.app.vendas.confirmar(&ana, &pedido(&show, &cadeira, TipoIngresso::Inteira, Some(("B", 2)))).await.unwrap();
 
     assert_eq!(venda.status(), StatusVenda::Confirmada);
     assert_eq!(venda.valor().to_string(), "R$ 180,00");
@@ -120,7 +121,8 @@ async fn teste2_alternativo_meia_entrada_sem_assento_e_cancelamento() {
     let (show, pista) = c.categoria("Show", "Pista").await;
     let antes = c.disponivel(&show, &pista).await;
 
-    let (venda, resumo) = c.app.vendas.confirmar(&bruno, &pedido(&show, &pista, TipoIngresso::Meia, None)).await.unwrap();
+    let (venda, resumo) =
+        c.app.vendas.confirmar(&bruno, &pedido(&show, &pista, TipoIngresso::Meia, None)).await.unwrap();
     assert_eq!(venda.valor().to_string(), "R$ 60,00");
     assert!(resumo.assento.is_none());
     assert_eq!(c.disponivel(&show, &pista).await, antes - 1);
@@ -138,10 +140,12 @@ async fn teste2b_alternativo_cancelamento_libera_assento() {
     let c = cenario().await;
     let (ana, bruno) = (c.ana().await, c.bruno().await);
     let (show, cadeira) = c.categoria("Show", "Cadeira").await;
-    let a4 = c.app.vendas.historico(&ana).await.unwrap().into_iter().find(|h| h.assento.as_deref() == Some("A4")).unwrap();
+    let a4 =
+        c.app.vendas.historico(&ana).await.unwrap().into_iter().find(|h| h.assento.as_deref() == Some("A4")).unwrap();
 
     c.app.vendas.cancelar(&ana, a4.venda.id()).await.unwrap();
-    let (venda, _) = c.app.vendas.confirmar(&bruno, &pedido(&show, &cadeira, TipoIngresso::Inteira, Some(("A", 4)))).await.unwrap();
+    let (venda, _) =
+        c.app.vendas.confirmar(&bruno, &pedido(&show, &cadeira, TipoIngresso::Inteira, Some(("A", 4)))).await.unwrap();
     assert_eq!(venda.cliente_id(), bruno.usuario_id);
 }
 
@@ -279,7 +283,8 @@ async fn teste3_excepcional_evento_lotado() {
         permite_cancelamento: true,
     };
     let mut b = c.app.eventos.iniciar_cadastro(&sol, dados).await.unwrap();
-    b.adicionar_categoria(NovaCategoria::sem_assento("Única", Dinheiro::de_centavos(3000).unwrap(), 2).unwrap()).unwrap();
+    b.adicionar_categoria(NovaCategoria::sem_assento("Única", Dinheiro::de_centavos(3000).unwrap(), 2).unwrap())
+        .unwrap();
     let evento = c.app.eventos.cadastrar(&sol, &b.construir().unwrap()).await.unwrap();
     let cat = c.app.eventos.categorias(evento.id()).await.unwrap().remove(0);
 
@@ -344,8 +349,17 @@ async fn relatorio_e_registro_de_presenca() {
     assert_eq!(r.receita.to_string(), "R$ 680,00");
     assert_eq!(r.ocupacao_formatada(), "2,5"); // 4 de 160
 
-    let a4 = c.app.vendas.historico(&c.ana().await).await.unwrap().into_iter()
-        .find(|h| h.assento.as_deref() == Some("A4")).unwrap().venda.id();
+    let a4 = c
+        .app
+        .vendas
+        .historico(&c.ana().await)
+        .await
+        .unwrap()
+        .into_iter()
+        .find(|h| h.assento.as_deref() == Some("A4"))
+        .unwrap()
+        .venda
+        .id();
     assert_eq!(c.app.relatorios.registrar_presenca(&sol, a4).await.unwrap().status(), StatusVenda::Utilizada);
     let r2 = c.app.relatorios.registrar_presenca(&sol, a4).await;
     assert!(matches!(r2, Err(Erro::RegraNegocio(ref m)) if m.contains("já utilizado")));
@@ -410,14 +424,17 @@ async fn organizador_cria_conta_e_vende_ingressos() {
         permite_cancelamento: true,
     };
     let mut b = c.app.eventos.iniciar_cadastro(&sessao, evento).await.unwrap();
-    b.adicionar_categoria(NovaCategoria::sem_assento("Areia", Dinheiro::de_texto("45,00").unwrap(), 150).unwrap()).unwrap();
-    b.adicionar_categoria(NovaCategoria::com_assento("Mesa", Dinheiro::de_texto("90").unwrap(), 5, 10).unwrap()).unwrap();
+    b.adicionar_categoria(NovaCategoria::sem_assento("Areia", Dinheiro::de_texto("45,00").unwrap(), 150).unwrap())
+        .unwrap();
+    b.adicionar_categoria(NovaCategoria::com_assento("Mesa", Dinheiro::de_texto("90").unwrap(), 5, 10).unwrap())
+        .unwrap();
     let criado = c.app.eventos.cadastrar(&sessao, &b.construir().unwrap()).await.unwrap();
 
     let (e, areia) = c.categoria("Luau", "Areia").await;
     assert_eq!(e.id(), criado.id());
     assert_eq!(areia.disponivel(), 150);
-    let (venda, _) = c.app.vendas.confirmar(&c.ana().await, &pedido(&e, &areia, TipoIngresso::Meia, None)).await.unwrap();
+    let (venda, _) =
+        c.app.vendas.confirmar(&c.ana().await, &pedido(&e, &areia, TipoIngresso::Meia, None)).await.unwrap();
     assert_eq!(venda.valor().to_string(), "R$ 22,50");
     assert_eq!(c.app.relatorios.relatorio(&sessao, e.id()).await.unwrap().vendidos, 1);
 }
@@ -434,7 +451,8 @@ async fn organizador_gerencia_categorias_e_capacidade() {
 
     // preço e quantidade da Pista
     let reais = |t: &str| Dinheiro::de_texto(t).unwrap();
-    let nova = ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista Premium", reais("130,00"), Some(90)).await.unwrap();
+    let nova =
+        ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista Premium", reais("130,00"), Some(90)).await.unwrap();
     assert_eq!((nova.categoria(), nova.quantidade(), nova.disponivel()), ("Pista Premium", 90, 89));
     // não pode ficar abaixo do vendido nem passar da capacidade (90 + 40 + 20 = 150; vagas = 160 - 60 = 100)
     let r = ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista", reais("130"), Some(0)).await;
@@ -443,13 +461,19 @@ async fn organizador_gerencia_categorias_e_capacidade() {
     assert!(matches!(r, Err(Erro::RegraNegocio(ref m)) if m.contains("capacidade")));
     // a compra seguinte usa o novo preço
     let (_, pista) = c.categoria("Show", "Pista Premium").await;
-    let (venda, _) = c.app.vendas.confirmar(&c.ana().await, &pedido(&show, &pista, TipoIngresso::Inteira, None)).await.unwrap();
+    let (venda, _) =
+        c.app.vendas.confirmar(&c.ana().await, &pedido(&show, &pista, TipoIngresso::Inteira, None)).await.unwrap();
     assert_eq!(venda.valor().to_string(), "R$ 130,00");
 
     // nova categoria cabe nas 10 vagas que sobraram (90 + 40 + 20 = 150)
-    let r = ev.adicionar_categoria(&sol, show.id(), NovaCategoria::sem_assento("Backstage", reais("500"), 11).unwrap()).await;
+    let r = ev
+        .adicionar_categoria(&sol, show.id(), NovaCategoria::sem_assento("Backstage", reais("500"), 11).unwrap())
+        .await;
     assert!(matches!(r, Err(Erro::RegraNegocio(_))));
-    let back = ev.adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Backstage", reais("500"), 2, 5).unwrap()).await.unwrap();
+    let back = ev
+        .adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Backstage", reais("500"), 2, 5).unwrap())
+        .await
+        .unwrap();
     assert_eq!(c.app.eventos.mapa(&back).await.unwrap().total(), 10);
 
     // capacidade: não pode ficar abaixo da soma das categorias (160); pode aumentar
@@ -510,7 +534,12 @@ async fn organizador_exclui_evento_sem_vendas_e_ve_lista_de_vendas() {
 async fn email_unico_entre_perfis_e_cnpj_alfanumerico() {
     let c = cenario().await;
     let auth = &c.app.autenticacao;
-    let cliente = |email: &str, cpf: &str| CadastroCliente { nome: "Henrique".into(), cpf: cpf.into(), email: email.into(), senha: "123456".into() };
+    let cliente = |email: &str, cpf: &str| CadastroCliente {
+        nome: "Henrique".into(),
+        cpf: cpf.into(),
+        email: email.into(),
+        senha: "123456".into(),
+    };
     auth.cadastrar_cliente(&cliente("henrique@gmail.com", "987.654.321-00")).await.unwrap();
     for repetido in ["henrique@gmail.com", " HENRIQUE@Gmail.com "] {
         let r = auth.cadastrar_cliente(&cliente(repetido, "246.813.579-28")).await;
@@ -543,8 +572,14 @@ async fn superadmin_de_producao() {
         relogio: Arc::new(RelogioFixo::em(agora_teste())),
     });
     assert!(dados_exemplo::criar_superadmin_se_vazio(&app, "Admin", "111.444.777-35", "x", "123456").await.is_err());
-    assert!(dados_exemplo::criar_superadmin_se_vazio(&app, "Admin", "111.444.777-35", "chefe@a3.com", "senha-forte").await.unwrap());
-    assert!(!dados_exemplo::criar_superadmin_se_vazio(&app, "Outro", "529.982.247-25", "b@a3.com", "123456").await.unwrap());
+    assert!(
+        dados_exemplo::criar_superadmin_se_vazio(&app, "Admin", "111.444.777-35", "chefe@a3.com", "senha-forte")
+            .await
+            .unwrap()
+    );
+    assert!(
+        !dados_exemplo::criar_superadmin_se_vazio(&app, "Outro", "529.982.247-25", "b@a3.com", "123456").await.unwrap()
+    );
     assert_eq!(app.autenticacao.entrar("chefe@a3.com", "senha-forte").await.unwrap().perfil, Perfil::SuperAdmin);
     assert!(app.eventos.listar_disponiveis().await.unwrap().is_empty()); // sem eventos de demonstração
 }

@@ -1,8 +1,8 @@
 //! Modelos das páginas. Cada `struct` é ligada a um arquivo HTML da pasta `templates/`
 //! (biblioteca Askama: o template é verificado na compilação).
 
-use contrato::ResumoCompra;
 use askama::Template;
+use contrato::ResumoCompra;
 #[allow(unused_imports)] // usado dentro dos templates (ex.: status().codigo())
 use dominio::entidades::Codificavel;
 use dominio::entidades::*;

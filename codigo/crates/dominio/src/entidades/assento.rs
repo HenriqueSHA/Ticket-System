@@ -28,7 +28,14 @@ pub struct Assento {
 }
 
 impl Assento {
-    pub fn reconstruir(id: i64, ingresso_id: i64, setor: String, fileira: String, numero: i32, situacao: Situacao) -> Self {
+    pub fn reconstruir(
+        id: i64,
+        ingresso_id: i64,
+        setor: String,
+        fileira: String,
+        numero: i32,
+        situacao: Situacao,
+    ) -> Self {
         Assento { id, ingresso_id, setor, fileira, numero, situacao }
     }
 

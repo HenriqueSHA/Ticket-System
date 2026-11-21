@@ -29,7 +29,13 @@ impl FabricaUsuarios {
     }
 
     /// Usuário de login de uma empresa organizadora (documento = CNPJ).
-    pub fn criar_login_organizador(&self, razao_social: &str, cnpj: &Cnpj, email: &str, senha: &str) -> Resultado<Usuario> {
+    pub fn criar_login_organizador(
+        &self,
+        razao_social: &str,
+        cnpj: &Cnpj,
+        email: &str,
+        senha: &str,
+    ) -> Resultado<Usuario> {
         texto_obrigatorio(email, "e-mail")?;
         let email = Email::novo(email)?;
         validar_senha(senha)?;

@@ -91,7 +91,11 @@ async fn executar(url: String) {
     assert_eq!((alterada.quantidade(), alterada.disponivel()), (80, 79));
     let gravada = app.eventos.categorias(show.id()).await.unwrap().into_iter().find(|c| c.id() == pista.id()).unwrap();
     assert_eq!((gravada.quantidade(), gravada.disponivel(), gravada.preco()), (80, 79, preco));
-    let nova = app.eventos.adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Mezanino", preco, 2, 5).unwrap()).await.unwrap();
+    let nova = app
+        .eventos
+        .adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Mezanino", preco, 2, 5).unwrap())
+        .await
+        .unwrap();
     assert_eq!(app.eventos.mapa(&nova).await.unwrap().total(), 10);
     app.eventos.remover_categoria(&sol, show.id(), nova.id()).await.unwrap();
     assert!(app.eventos.remover(&sol, show.id()).await.is_err()); // tem vendas

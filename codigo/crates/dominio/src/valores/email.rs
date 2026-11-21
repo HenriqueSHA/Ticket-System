@@ -21,11 +21,7 @@ impl Email {
             }
             None => false,
         };
-        if valido {
-            Ok(Email(email))
-        } else {
-            Err(Erro::validacao("e-mail inválido (exemplo: nome@dominio.com)"))
-        }
+        if valido { Ok(Email(email)) } else { Err(Erro::validacao("e-mail inválido (exemplo: nome@dominio.com)")) }
     }
 
     pub fn como_texto(&self) -> &str {

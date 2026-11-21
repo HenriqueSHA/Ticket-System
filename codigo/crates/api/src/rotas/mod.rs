@@ -52,4 +52,3 @@ pub fn criar(estado: EstadoApi) -> Router {
         .fallback(|| async { crate::FalhaApi(dominio::Erro::nao_encontrado("rota inexistente")) })
         .with_state(estado)
 }
-

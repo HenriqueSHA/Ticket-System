@@ -80,9 +80,7 @@ impl Cnpj {
     pub fn novo(texto: &str) -> Resultado<Self> {
         match Self::normalizar(texto) {
             Some(c) if Self::digitos_conferem(&c) => Ok(Cnpj(c)),
-            Some(_) => Err(Erro::validacao(
-                "CNPJ inválido: os dígitos verificadores (os 2 últimos) não conferem",
-            )),
+            Some(_) => Err(Erro::validacao("CNPJ inválido: os dígitos verificadores (os 2 últimos) não conferem")),
             None => Err(Erro::validacao(
                 "CNPJ inválido: informe 14 caracteres (ex.: 11.222.333/0001-81 ou 12.ABC.345/01DE-35)",
             )),

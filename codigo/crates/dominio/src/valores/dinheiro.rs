@@ -15,11 +15,7 @@ impl Dinheiro {
     pub const ZERO: Dinheiro = Dinheiro(0);
 
     pub fn de_centavos(centavos: i64) -> Resultado<Self> {
-        if centavos < 0 {
-            Err(Erro::validacao("o valor não pode ser negativo"))
-        } else {
-            Ok(Dinheiro(centavos))
-        }
+        if centavos < 0 { Err(Erro::validacao("o valor não pode ser negativo")) } else { Ok(Dinheiro(centavos)) }
     }
 
     /// Converte o texto digitado ("120", "120,50", "1.234,50" ou "120.50").

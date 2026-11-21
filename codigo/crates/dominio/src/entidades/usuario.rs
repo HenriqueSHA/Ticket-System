@@ -56,7 +56,14 @@ impl Usuario {
     }
 
     /// Recria um usuário lido do banco de dados.
-    pub fn reconstruir(id: i64, nome: String, documento: String, email: Email, perfil: Perfil, senha_hash: String) -> Self {
+    pub fn reconstruir(
+        id: i64,
+        nome: String,
+        documento: String,
+        email: Email,
+        perfil: Perfil,
+        senha_hash: String,
+    ) -> Self {
         Usuario { id, nome, documento, email, perfil, senha_hash }
     }
 

@@ -151,7 +151,12 @@ pub async fn form_novo(State(estado): State<Estado>, Logado(s): Logado) -> Respo
 
 /// Algoritmo 3 — lê o formulário e envia ao back, que valida os dados, cada categoria (laço)
 /// e grava tudo junto. Os erros voltam um por linha.
-pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Form(f): Form<FormEvento>) -> Response {
+pub async fn criar(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Form(f): Form<FormEvento>,
+) -> Response {
     let (campos, linhas) = (f.campos(), f.categorias());
     let dados = match f.dados(None) {
         Ok(d) => d,
@@ -173,7 +178,11 @@ pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJ
             &estado,
             jar,
             &format!("/organizador/eventos/{}", evento.id()),
-            Aviso::sucesso(format!("Evento \"{}\" cadastrado (código {}). As vendas já estão abertas.", evento.nome(), evento.id())),
+            Aviso::sucesso(format!(
+                "Evento \"{}\" cadastrado (código {}). As vendas já estão abertas.",
+                evento.nome(),
+                evento.id()
+            )),
         ),
         Err(e) => {
             let erros = e.mensagem().split(SEPARADOR_MENSAGENS).map(str::to_string).collect();
@@ -182,13 +191,7 @@ pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJ
     }
 }
 
-fn pagina_editar(
-    s: &Sessao,
-    id: i64,
-    campos: CamposEvento,
-    capacidade_minima: i32,
-    erros: Vec<String>,
-) -> Response {
+fn pagina_editar(s: &Sessao, id: i64, campos: CamposEvento, capacidade_minima: i32, erros: Vec<String>) -> Response {
     render(PaginaFormEvento {
         layout: Layout::novo("Alterar evento", Some(s), None),
         acao: format!("/organizador/eventos/{id}/editar"),
@@ -251,7 +254,12 @@ pub async fn editar(
 }
 
 /// Algoritmo 6 — relatório, mapa de cada setor com assento marcado e lista de vendas.
-pub async fn relatorio(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
+pub async fn relatorio(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Path(id): Path<i64>,
+) -> Response {
     let relatorio = tentar!(estado.back.relatorios.relatorio(&s, id).await, s, "/organizador/eventos");
     let vendas = tentar!(estado.back.relatorios.vendas_do_evento(&s, id).await, s, "/organizador/eventos");
     let mut mapas = Vec::new();
@@ -259,7 +267,8 @@ pub async fn relatorio(State(estado): State<Estado>, Logado(s): Logado, jar: Coo
         mapas.push(tentar!(estado.back.eventos.mapa(c).await, s, "/organizador/eventos"));
     }
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
-    let pagina = PaginaRelatorio { layout: Layout::novo("Relatório do evento", Some(&s), aviso), relatorio, mapas, vendas };
+    let pagina =
+        PaginaRelatorio { layout: Layout::novo("Relatório do evento", Some(&s), aviso), relatorio, mapas, vendas };
     (jar, render(pagina)).into_response()
 }
 
@@ -283,7 +292,11 @@ pub async fn checkin(State(estado): State<Estado>, Logado(s): Logado, Form(f): F
         },
         Err(_) => Aviso::erro("digite o número do ingresso"),
     };
-    render(PaginaCheckin { layout: Layout::novo("Check-in", Some(&s), None), codigo: String::new(), resultado: Some(resultado) })
+    render(PaginaCheckin {
+        layout: Layout::novo("Check-in", Some(&s), None),
+        codigo: String::new(),
+        resultado: Some(resultado),
+    })
 }
 
 /// Check-in direto pela lista de vendas do relatório.
@@ -352,7 +365,12 @@ async fn pagina_gerenciar(
 }
 
 /// Página "Gerenciar evento": categorias com vendidos/disponíveis e todas as ações.
-pub async fn gerenciar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
+pub async fn gerenciar(
+    State(estado): State<Estado>,
+    Logado(s): Logado,
+    jar: CookieJar,
+    Path(id): Path<i64>,
+) -> Response {
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
     let nova = LinhaCategoria::default();
     (jar, pagina_gerenciar(&estado, &s, id, aviso, nova, None).await).into_response()
@@ -436,7 +454,8 @@ pub async fn alterar_categoria(
         ),
         Err(e) => {
             let voltar = format!("/organizador/eventos/{id}");
-            let (evento, ingresso) = tentar!(estado.back.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
+            let (evento, ingresso) =
+                tentar!(estado.back.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
             render(PaginaFormCategoria {
                 layout: Layout::novo("Editar categoria", Some(&s), None),
                 nome: f.nome,
