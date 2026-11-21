@@ -64,31 +64,57 @@ impl fmt::Display for Cpf {
     }
 }
 
-/// CNPJ válido, guardado somente com os 14 dígitos.
+/// CNPJ válido, guardado só com os 14 caracteres (sem pontuação, letras em maiúsculas).
+///
+/// Aceita o formato numérico tradicional e o **CNPJ alfanumérico** da Receita Federal
+/// (emitido a partir de julho de 2026): os 12 primeiros caracteres podem ser letras ou números
+/// e os 2 últimos são os dígitos verificadores. No cálculo, cada caractere vale o seu código
+/// ASCII menos 48 ('0' = 0 … '9' = 9, 'A' = 17 … 'Z' = 42) — para CNPJs só com números o
+/// resultado é o mesmo do cálculo antigo.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cnpj(String);
 
 impl Cnpj {
     pub fn novo(texto: &str) -> Resultado<Self> {
-        if Self::valido(texto) {
-            Ok(Cnpj(somente_digitos(texto)))
-        } else {
-            Err(Erro::validacao("CNPJ inválido (confira os 14 dígitos)"))
+        match Self::normalizar(texto) {
+            Some(c) if Self::digitos_conferem(&c) => Ok(Cnpj(c)),
+            Some(_) => Err(Erro::validacao(
+                "CNPJ inválido: os dígitos verificadores (os 2 últimos) não conferem",
+            )),
+            None => Err(Erro::validacao(
+                "CNPJ inválido: informe 14 caracteres (ex.: 11.222.333/0001-81 ou 12.ABC.345/01DE-35)",
+            )),
         }
     }
 
     pub fn valido(texto: &str) -> bool {
-        let Some(d) = vetor_de_digitos(texto, 14) else { return false };
-        if todos_iguais(&d) {
-            return false;
+        Self::normalizar(texto).is_some_and(|c| Self::digitos_conferem(&c))
+    }
+
+    /// Remove pontuação e espaços e põe as letras em maiúsculas. `None` se não sobrarem
+    /// exatamente 12 caracteres alfanuméricos + 2 dígitos.
+    fn normalizar(texto: &str) -> Option<String> {
+        let texto = texto.trim();
+        if texto.chars().any(|c| !(c.is_ascii_alphanumeric() || ".-/ ".contains(c))) {
+            return None;
+        }
+        let c: String = texto.chars().filter(char::is_ascii_alphanumeric).map(|c| c.to_ascii_uppercase()).collect();
+        let valido = c.len() == 14 && c[12..].chars().all(|d| d.is_ascii_digit());
+        valido.then_some(c)
+    }
+
+    fn digitos_conferem(c: &str) -> bool {
+        let v: Vec<u32> = c.bytes().map(|b| u32::from(b) - 48).collect();
+        if c.bytes().all(|b| b == c.as_bytes()[0]) {
+            return false; // ex.: 00.000.000/0000-00
         }
         let digito = |pesos: &[u32]| {
-            let soma: u32 = d.iter().zip(pesos).map(|(x, p)| x * p).sum();
+            let soma: u32 = v.iter().zip(pesos).map(|(x, p)| x * p).sum();
             let resto = soma % 11;
             if resto < 2 { 0 } else { 11 - resto }
         };
-        digito(&[5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == d[12]
-            && digito(&[6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == d[13]
+        digito(&[5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == v[12]
+            && digito(&[6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == v[13]
     }
 
     pub fn digitos(&self) -> &str {
@@ -122,6 +148,25 @@ mod testes {
         assert!(!Cpf::valido("12345678909 01")); // dígitos a mais
         assert!(!Cpf::valido("abc.def.ghi-jk"));
         assert!(Cpf::novo("98998998943").is_err());
+    }
+
+    #[test]
+    fn cnpj_alfanumerico() {
+        // exemplo oficial da Receita Federal
+        assert!(Cnpj::valido("12.ABC.345/01DE-35"));
+        assert!(Cnpj::valido("12abc34501de35")); // minúsculas e sem pontuação
+        assert_eq!(Cnpj::novo("12.abc.345/01de-35").unwrap().digitos(), "12ABC34501DE35");
+        assert_eq!(Cnpj::novo("12ABC34501DE35").unwrap().to_string(), "12.ABC.345/01DE-35");
+        assert!(!Cnpj::valido("12.ABC.345/01DE-36")); // dígito errado
+        assert!(!Cnpj::valido("12.ABC.345/01DE-3X")); // verificador tem que ser número
+        assert!(matches!(Cnpj::novo("12.345"), Err(Erro::Validacao(ref m)) if m.contains("14 caracteres")));
+        assert!(matches!(Cnpj::novo("11.222.333/0001-82"), Err(Erro::Validacao(ref m)) if m.contains("verificadores")));
+    }
+
+    #[test]
+    fn cnpj_reais() {
+        assert!(Cnpj::valido("00.000.000/0001-91")); // Banco do Brasil
+        assert!(Cnpj::valido("33.000.167/0001-01")); // Petrobras
     }
 
     #[test]

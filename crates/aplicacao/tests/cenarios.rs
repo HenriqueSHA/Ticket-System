@@ -503,3 +503,29 @@ async fn organizador_exclui_evento_sem_vendas_e_ve_lista_de_vendas() {
     c.app.eventos.remover(&sol, evento.id()).await.unwrap();
     assert!(c.app.eventos.gerenciar(&sol, evento.id()).await.is_err());
 }
+
+/// O e-mail é único no sistema inteiro: nem cliente nem organizador repetem e-mail já usado
+/// (mesmo com letras maiúsculas/espaços). Organizador pode usar CNPJ alfanumérico.
+#[tokio::test]
+async fn email_unico_entre_perfis_e_cnpj_alfanumerico() {
+    let c = cenario().await;
+    let auth = &c.app.autenticacao;
+    let cliente = |email: &str, cpf: &str| CadastroCliente { nome: "Henrique".into(), cpf: cpf.into(), email: email.into(), senha: "123456".into() };
+    auth.cadastrar_cliente(&cliente("henrique@gmail.com", "987.654.321-00")).await.unwrap();
+    for repetido in ["henrique@gmail.com", " HENRIQUE@Gmail.com "] {
+        let r = auth.cadastrar_cliente(&cliente(repetido, "246.813.579-28")).await;
+        assert!(matches!(r, Err(Erro::RegraNegocio(ref m)) if m.contains("e-mail")), "{repetido}");
+    }
+    let org = |email: &str, cnpj: &str| CadastroOrganizador {
+        razao_social: "Produtora Nova".into(),
+        cnpj: cnpj.into(),
+        contato: "71 9999-0000".into(),
+        email: email.into(),
+        senha: "123456".into(),
+    };
+    let r = auth.cadastrar_organizador(&org("henrique@gmail.com", "12.ABC.345/01DE-35")).await;
+    assert!(matches!(r, Err(Erro::RegraNegocio(ref m)) if m.contains("e-mail")));
+    let criado = auth.cadastrar_organizador(&org("produtora@nova.com", "12.abc.345/01de-35")).await.unwrap();
+    assert_eq!(criado.cnpj().to_string(), "12.ABC.345/01DE-35");
+    assert!(c.login("produtora@nova.com", "123456").await.organizador_id.is_some());
+}

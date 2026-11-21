@@ -7,7 +7,7 @@
   <form method="post" action="/cadastro/organizador" class="formulario">
     <label>Razão social / nome da produtora <input name="razao_social" value="{{ razao_social }}" required></label>
     <label>CNPJ <input name="cnpj" value="{{ cnpj }}" placeholder="00.000.000/0000-00" required>
-      <small>O sistema confere os dígitos verificadores.</small></label>
+      <small>Aceita o formato numérico e o novo CNPJ alfanumérico (ex.: 12.ABC.345/01DE-35). O sistema confere os dígitos verificadores.</small></label>
     <label>Contato (telefone ou responsável) <input name="contato" value="{{ contato }}" required></label>
     <label>E-mail de acesso <input type="email" name="email" value="{{ email }}" required></label>
     <label>Senha <input type="password" name="senha" minlength="6" required><small>Mínimo de 6 caracteres.</small></label>
