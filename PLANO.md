@@ -54,17 +54,18 @@ navegador ──► front (web, :3000) ──HTTP/JSON──► back (api, :8080
 - [x] 2.6 Subir os 3 contêineres, healthchecks, testar todos os fluxos pelo navegador
 - **Checklist:** `docker compose ps` mostra 3 serviços healthy ✔ · front não acessa o banco (nem resolve o nome `db`) ✔ · back sem porta pública ✔ · 46 testes passam ✔ · commit/push ✔
 
-## Fase 3 — Qualidade, testes e CI/CD
+## Fase 3 — Qualidade, testes e CI/CD ✅
 - [x] 3.1 Revisão do código (code review): erros, duplicações, otimizações (ex.: N+1 consultas na lista de eventos, índices no banco)
 - [x] 3.2 Corrigir o que a revisão achar + testes que provem cada correção
   (XSS nos `confirm()`, senhas de demonstração em produção, detalhe técnico vazando para a tela,
   sessões/avisos sem validade, memória sobrescrevendo total vendido, N+1 consultas, índices)
-- [ ] 3.3 Testes que faltam: front (renderização/rotas com back falso), API, PostgreSQL
+- [x] 3.3 Testes que faltam: front (renderização/rotas com back falso), API, PostgreSQL
 - [x] 3.4 `cargo fmt` em tudo + configuração (`rustfmt.toml`)
-- [ ] 3.5 GitHub Actions — **CI** em todo push/PR: fmt, clippy (sem avisos), testes, testes no PostgreSQL (serviço do Actions), build das imagens Docker
-- [ ] 3.6 GitHub Actions — **CD** na `main`: publicar as imagens `front` e `back` no GitHub Container Registry; servidor atualiza com `docker compose pull && docker compose up -d`
-- [ ] 3.7 Ver a pipeline verde no GitHub
-- **Checklist:** badge de CI no README · pipeline verde · imagens publicadas
+- [x] 3.5 GitHub Actions — **CI** em todo push/PR: fmt, clippy (sem avisos), testes, testes no PostgreSQL (serviço do Actions), build das imagens Docker
+- [x] 3.6 GitHub Actions — **CD** na `main`: publicar as imagens `front` e `back` no GitHub Container Registry; servidor atualiza com `docker compose pull && docker compose up -d`
+- [x] 3.7 Ver a pipeline verde no GitHub
+- **Checklist:** badge de CI no README ✔ · pipeline verde na 1ª execução ✔ (run 44868554343) · imagens
+  `ghcr.io/henriquesha/ticket-system-{back,front}` publicadas ✔ · deploy aguardando os secrets do servidor AWS
 
 ## Fase 4 — Documentos coerentes com o sistema final
 - [ ] 4.1 Revisar seções 1–7 (Entrega 2) contra o sistema: tabela 7.2 (preço em centavos, novos campos), regra 7.3 "só SuperAdmin cria organizador" → autocadastro, 7.4/7.5
