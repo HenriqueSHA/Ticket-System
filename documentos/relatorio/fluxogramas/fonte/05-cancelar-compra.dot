@@ -1,0 +1,45 @@
+  I  [class=term label="Início\ncancelarCompra(cliente)"]
+  LV [class=sub  label="listarVendas(cliente, CONFIRMADA)"]
+  R  [class=io   label="Ler idVenda"]
+  B  [class=proc label="venda ← buscarVenda(idVenda)"]
+  C1 [class=dec  label="venda existe\nE é do\ncliente?"]
+  E1 [class=io   label="Erro: compra\nnão encontrada"]
+  F1 [class=term label="Fim"]
+  C2 [class=dec  label="status =\nCONFIRMADA?"]
+  E2 [class=io   label="Erro: já cancelada\nou utilizada"]
+  F2 [class=term label="Fim"]
+  C3 [class=dec  label="evento permite\ncancelamento?"]
+  E3 [class=io   label="Erro: evento não\npermite cancelamento"]
+  F3 [class=term label="Fim"]
+  C4 [class=dec  label="data do evento\n> hoje?"]
+  E4 [class=io   label="Erro: o evento\njá ocorreu"]
+  F4 [class=term label="Fim"]
+  CF [class=io   label="Exibir valor a estornar\nLer confirmação (S/N)"]
+  C5 [class=dec  label="confirmou?"]
+  F5 [class=term label="Fim"]
+  TR [class=proc label="TRANSAÇÃO (tudo ou nada):\nvenda.status ← CANCELADA\nassento ← LIVRE (se houver)\ndisponivel ← disponivel + 1\ntotalVendido ← totalVendido − 1"]
+  OK [class=io   label="Escrever \"Compra cancelada,\nassento liberado\""]
+  F  [class=term label="Fim"]
+
+  I -> LV -> R -> B -> C1
+  C1 -> C2 [label=" Sim" weight=10]
+  C1 -> E1 [label="Não"]
+  E1 -> F1
+  {rank=same; C1; E1; F1}
+  C2 -> C3 [label=" Sim" weight=10]
+  C2 -> E2 [label="Não"]
+  E2 -> F2
+  {rank=same; C2; E2; F2}
+  C3 -> C4 [label=" Sim" weight=10]
+  C3 -> E3 [label="Não"]
+  E3 -> F3
+  {rank=same; C3; E3; F3}
+  C4 -> CF [label=" Sim" weight=10]
+  C4 -> E4 [label="Não"]
+  E4 -> F4
+  {rank=same; C4; E4; F4}
+  CF -> C5
+  C5 -> TR [label=" Sim" weight=10]
+  C5 -> F5 [label="Não"]
+  {rank=same; C5; F5}
+  TR -> OK -> F

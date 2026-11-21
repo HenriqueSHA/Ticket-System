@@ -1,0 +1,54 @@
+  label="Comprar ingresso — Parte 2: assento, pagamento e registro da venda"; labelloc=t; fontsize=13
+
+  B   [class=con  label="B"]
+  C6  [class=dec  label="categoria tem\nassento\nmarcado?"]
+  MAP [class=sub  label="exibirMapaAssentos()"]
+  LA  [class=io   label="Ler fileira e número"]
+  C7  [class=dec  label="assento\nexiste?"]
+  E7  [class=io   label="Erro: assento\ninexistente"]
+  F7  [class=term label="Fim"]
+  C8  [class=dec  label="assento\nLIVRE?"]
+  E8  [class=io   label="Erro: assento\njá vendido"]
+  F8  [class=term label="Fim"]
+  VAL [class=proc label="valor ← categoria.preco"]
+  C9  [class=dec  label="tipo = 2\n(meia)?"]
+  MEIA [class=proc label="valor ← valor ×\n(1 − DESCONTO_MEIA)"]
+  PAG [class=io   label="Ler forma de pagamento\n1-PIX 2-Crédito 3-Débito"]
+  C10 [class=dec  label="forma\nválida?"]
+  INV [class=io   label="Escrever\n\"Opção inválida\""]
+  RES [class=io   label="Exibir resumo da compra\nLer confirmação (S/N)"]
+  C11 [class=dec  label="confirmou?"]
+  E11 [class=io   label="Compra cancelada\npelo usuário"]
+  F11 [class=term label="Fim"]
+  TR  [class=proc label="TRANSAÇÃO (tudo ou nada):\nassento.situacao ← OCUPADO\ndisponivel ← disponivel − 1\ntotalVendido ← totalVendido + 1\ngravar venda CONFIRMADA"]
+  CP  [class=io   label="Exibir comprovante"]
+  F   [class=term label="Fim"]
+
+  B -> C6
+  C6 -> MAP [label=" Sim" weight=10]
+  C6 -> VAL [label="Não"]
+  MAP -> LA -> C7
+  C7 -> C8 [label=" Sim" weight=10]
+  C7 -> E7 [label="Não"]
+  E7 -> F7
+  {rank=same; C7; E7; F7}
+  C8 -> VAL [label=" Sim" weight=10]
+  C8 -> E8  [label="Não"]
+  E8 -> F8
+  {rank=same; C8; E8; F8}
+  VAL -> C9
+  C9 -> PAG  [label=" Não" weight=10]
+  C9 -> MEIA [label="Sim"]
+  {rank=same; C9; MEIA}
+  MEIA -> PAG
+  PAG -> C10
+  C10 -> RES [label=" Sim" weight=10]
+  C10 -> INV [label="Não"]
+  {rank=same; C10; INV}
+  INV -> PAG [constraint=false]
+  RES -> C11
+  C11 -> TR  [label=" Sim" weight=10]
+  C11 -> E11 [label="Não"]
+  E11 -> F11
+  {rank=same; C11; E11; F11}
+  TR -> CP -> F

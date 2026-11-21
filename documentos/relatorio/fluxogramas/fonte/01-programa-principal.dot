@@ -1,0 +1,46 @@
+  I   [class=term label="Início"]
+  C   [class=proc label="Carregar dados do banco\nsair ← FALSO"]
+  L   [class=dec  label="sair =\nFALSO?"]
+  E   [class=io   label="Escrever\n\"Sistema encerrado\""]
+  F   [class=term label="Fim"]
+  M   [class=io   label="Exibir menu inicial\nLer opcao"]
+  O   [class=dec  label="opcao"]
+  S   [class=proc label="sair ←\nVERDADEIRO"]
+  CC  [class=sub  label="cadastrarCliente()"]
+  INV [class=io   label="Escrever\n\"Opção inválida\""]
+  LG  [class=io   label="Ler email\nLer senha"]
+  B   [class=proc label="usuario ←\nbuscarUsuarioPorEmail(email)"]
+  V   [class=dec  label="usuário existe\nE senha\nconfere?"]
+  ERR [class=io   label="Escrever \"E-mail ou\nsenha inválidos\""]
+  P   [class=dec  label="perfil do\nusuário"]
+  MC  [class=sub  label="menuCliente()"]
+  MS  [class=sub  label="menuSuperAdmin()"]
+  BL  [class=dec  label="organizador\nbloqueado?"]
+  AB  [class=io   label="Escrever\n\"Acesso bloqueado\""]
+  MO  [class=sub  label="menuOrganizador()"]
+  A   [class=con  label="A"]
+  A2  [class=con  label="A"]
+
+  I -> C -> L
+  L -> M  [label=" Sim" weight=10]
+  L -> E  [label="Não"]
+  E -> F
+  {rank=same; L; E}
+  {rank=same; E; F}
+  M -> O
+  O -> S   [label="0"]
+  O -> CC  [label="2"]
+  O -> INV [label="outra"]
+  O -> LG  [label="1" weight=10]
+  LG -> B -> V
+  V -> P   [label=" Sim" weight=10]
+  V -> ERR [label="Não"]
+  {rank=same; V; ERR}
+  P -> MC  [label="CLIENTE"]
+  P -> MS  [label="SUPERADMIN"]
+  P -> BL  [label="ORGANIZADOR"]
+  BL -> AB [label="Sim"]
+  BL -> MO [label="Não"]
+  S -> A; CC -> A; INV -> A; ERR -> A; MC -> A; MS -> A; AB -> A; MO -> A
+  A2 -> L [label=" volta ao laço"]
+  {rank=same; A2; C}

@@ -1,2 +1,10 @@
-/target
+# Rust
+codigo/target/
+# configuração local (modelo em .env.example)
 .env
+# dependências e arquivos gerados por ferramentas
+node_modules/
+*.db
+# arquivos temporários do Word/LibreOffice
+~$*
+.~lock.*

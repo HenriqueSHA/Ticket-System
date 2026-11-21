@@ -6,6 +6,8 @@
 #
 # As variáveis vêm do arquivo .env (modelo em .env.example). Em produção, troque a senha!
 
+name: ticket-system
+
 services:
   db:
     image: postgres:16-alpine
@@ -27,7 +29,7 @@ services:
       retries: 15
 
   app:
-    build: .
+    build: ./codigo
     image: ticket-system:latest
     container_name: ingressos-app
     restart: unless-stopped
@@ -43,3 +45,5 @@ services:
 
 volumes:
   dados-postgres:
+    # nome fixo: os dados não dependem do nome da pasta onde o compose está
+    name: ticket-system-dados

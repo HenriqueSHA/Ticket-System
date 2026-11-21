@@ -1,0 +1,50 @@
+  label="Comprar ingresso — Parte 1: evento, categoria e tipo"; labelloc=t; fontsize=13
+
+  I  [class=term label="Início\ncomprarIngresso(cliente)"]
+  LE [class=sub  label="listarEventosDisponiveis()"]
+  R1 [class=io   label="Ler idEvento"]
+  B1 [class=proc label="evento ← buscarEvento(idEvento)"]
+  C1 [class=dec  label="existe, ABERTO\nE data > hoje?"]
+  E1 [class=io   label="Erro: evento\nindisponível"]
+  F1 [class=term label="Fim"]
+  C2 [class=dec  label="totalVendido\n< capacidade?"]
+  E2 [class=io   label="Evento lotado"]
+  F2 [class=term label="Fim"]
+  LC [class=io   label="Exibir categorias\nLer idCategoria"]
+  C3 [class=dec  label="categoria\nexiste no\nevento?"]
+  E3 [class=io   label="Erro: categoria\ninexistente"]
+  F3 [class=term label="Fim"]
+  C4 [class=dec  label="disponível\n> 0?"]
+  E4 [class=io   label="Categoria\nesgotada"]
+  F4 [class=term label="Fim"]
+  LT [class=io   label="Ler tipo\n1 - Inteira  2 - Meia"]
+  C5 [class=dec  label="tipo = 1\nOU 2?"]
+  INV [class=io  label="Escrever\n\"Opção inválida\""]
+  B  [class=con  label="B"]
+  NB [shape=plaintext fontsize=10 label="continua na Parte 2"]
+
+  I -> LE -> R1 -> B1 -> C1
+  C1 -> C2 [label=" Sim" weight=10]
+  C1 -> E1 [label="Não"]
+  E1 -> F1
+  {rank=same; C1; E1; F1}
+  C2 -> LC [label=" Sim" weight=10]
+  C2 -> E2 [label="Não"]
+  E2 -> F2
+  {rank=same; C2; E2; F2}
+  LC -> C3
+  C3 -> C4 [label=" Sim" weight=10]
+  C3 -> E3 [label="Não"]
+  E3 -> F3
+  {rank=same; C3; E3; F3}
+  C4 -> LT [label=" Sim" weight=10]
+  C4 -> E4 [label="Não"]
+  E4 -> F4
+  {rank=same; C4; E4; F4}
+  LT -> C5
+  C5 -> B   [label=" Sim" weight=10]
+  C5 -> INV [label="Não"]
+  {rank=same; C5; INV}
+  INV -> LT [constraint=false]
+  B -> NB [style=invis]
+  {rank=same; B; NB}

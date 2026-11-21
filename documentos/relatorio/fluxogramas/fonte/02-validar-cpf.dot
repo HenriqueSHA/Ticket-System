@@ -1,0 +1,42 @@
+  I   [class=term label="Início\nvalidarCPF(cpf)"]
+  T   [class=dec  label="cpf tem 11\ndígitos\nnuméricos?"]
+  RF1 [class=term label="Retorna FALSO"]
+  D   [class=proc label="PARA i DE 1 ATÉ 11\n   d[i] ← dígito i do cpf"]
+  IG  [class=dec  label="todos os\ndígitos são\niguais?"]
+  RF2 [class=term label="Retorna FALSO"]
+  S1  [class=proc label="soma ← 0\nPARA i DE 1 ATÉ 9\n   soma ← soma + d[i] × (11 − i)"]
+  R1  [class=proc label="resto ← (soma × 10) % 11"]
+  Q1  [class=dec  label="resto\n= 10?"]
+  Z1  [class=proc label="resto ← 0"]
+  DV1 [class=proc label="dv1 ← resto"]
+  S2  [class=proc label="soma ← 0\nPARA i DE 1 ATÉ 10\n   soma ← soma + d[i] × (12 − i)"]
+  R2  [class=proc label="resto ← (soma × 10) % 11"]
+  Q2  [class=dec  label="resto\n= 10?"]
+  Z2  [class=proc label="resto ← 0"]
+  DV2 [class=proc label="dv2 ← resto"]
+  OK  [class=dec  label="dv1 = d[10]\nE\ndv2 = d[11]?"]
+  RV  [class=term label="Retorna VERDADEIRO"]
+  RF3 [class=term label="Retorna FALSO"]
+
+  I -> T
+  T -> D   [label=" Sim" weight=10]
+  T -> RF1 [label="Não"]
+  {rank=same; T; RF1}
+  D -> IG
+  IG -> S1  [label=" Não" weight=10]
+  IG -> RF2 [label="Sim"]
+  {rank=same; IG; RF2}
+  S1 -> R1 -> Q1
+  Q1 -> DV1 [label=" Não" weight=10]
+  Q1 -> Z1  [label="Sim"]
+  {rank=same; Q1; Z1}
+  Z1 -> DV1
+  DV1 -> S2 -> R2 -> Q2
+  Q2 -> DV2 [label=" Não" weight=10]
+  Q2 -> Z2  [label="Sim"]
+  {rank=same; Q2; Z2}
+  Z2 -> DV2
+  DV2 -> OK
+  OK -> RV  [label=" Sim" weight=10]
+  OK -> RF3 [label="Não"]
+  {rank=same; OK; RF3}
