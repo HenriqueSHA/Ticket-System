@@ -379,3 +379,45 @@ async fn administracao_de_organizadores() {
     c.app.administracao.remover(&admin, org.id()).await.unwrap(); // sem vendas: pode remover
     assert!(c.app.autenticacao.entrar("nova@produtora.com", "nova1234").await.is_err());
 }
+
+/// Empresa cria a própria conta de organizador, entra, cadastra um evento e um cliente compra.
+#[tokio::test]
+async fn organizador_cria_conta_e_vende_ingressos() {
+    let c = cenario().await;
+    let dados = CadastroOrganizador {
+        razao_social: "Produtora Nova Onda".into(),
+        cnpj: "33.444.555/0001-81".into(),
+        contato: "(71) 98888-7777".into(),
+        email: "contato@novaonda.com".into(),
+        senha: "onda1234".into(),
+    };
+    let org = c.app.autenticacao.cadastrar_organizador(&dados).await.unwrap();
+    assert!(org.esta_ativo());
+    // mesmo CNPJ ou e-mail de novo: recusado
+    assert!(matches!(c.app.autenticacao.cadastrar_organizador(&dados).await, Err(Erro::RegraNegocio(_))));
+    let invalido = CadastroOrganizador { cnpj: "11.222.333/0001-00".into(), email: "x@y.com".into(), ..dados.clone() };
+    assert!(matches!(c.app.autenticacao.cadastrar_organizador(&invalido).await, Err(Erro::Validacao(_))));
+
+    let sessao = c.login("contato@novaonda.com", "onda1234").await;
+    assert_eq!(sessao.perfil, Perfil::Organizador);
+    let evento = DadosEvento {
+        nome: "Luau na Praia".into(),
+        descricao: String::new(),
+        local: "Praia do Forte".into(),
+        data: agora_teste().date().checked_add_days(Days::new(15)).unwrap(),
+        horario: NaiveTime::from_hms_opt(19, 0, 0).unwrap(),
+        capacidade: 200,
+        permite_cancelamento: true,
+    };
+    let mut b = c.app.eventos.iniciar_cadastro(&sessao, evento).await.unwrap();
+    b.adicionar_categoria(NovaCategoria::sem_assento("Areia", Dinheiro::de_texto("45,00").unwrap(), 150).unwrap()).unwrap();
+    b.adicionar_categoria(NovaCategoria::com_assento("Mesa", Dinheiro::de_texto("90").unwrap(), 5, 10).unwrap()).unwrap();
+    let criado = c.app.eventos.cadastrar(&sessao, &b.construir().unwrap()).await.unwrap();
+
+    let (e, areia) = c.categoria("Luau", "Areia").await;
+    assert_eq!(e.id(), criado.id());
+    assert_eq!(areia.disponivel(), 150);
+    let (venda, _) = c.app.vendas.confirmar(&c.ana().await, &pedido(&e, &areia, TipoIngresso::Meia, None)).await.unwrap();
+    assert_eq!(venda.valor().to_string(), "R$ 22,50");
+    assert_eq!(c.app.relatorios.relatorio(&sessao, e.id()).await.unwrap().vendidos, 1);
+}

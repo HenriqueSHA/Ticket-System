@@ -1,22 +1,12 @@
 use std::sync::Arc;
 
-use dominio::entidades::{NovoOrganizador, Organizador, Perfil};
+use dominio::entidades::{Organizador, Perfil};
 use dominio::portas::{RepositorioOrganizadores, RepositorioUsuarios};
-use dominio::valores::{Cnpj, texto_obrigatorio};
 use dominio::{Erro, Resultado};
 
-use crate::fabrica::{FabricaUsuarios, verificar_unicidade};
+use crate::cadastro_organizador::{self, CadastroOrganizador};
+use crate::fabrica::FabricaUsuarios;
 use crate::sessao::Sessao;
-
-/// Dados do formulário "Novo organizador".
-#[derive(Debug, Clone, Default)]
-pub struct CadastroOrganizador {
-    pub razao_social: String,
-    pub cnpj: String,
-    pub contato: String,
-    pub email: String,
-    pub senha: String,
-}
 
 /// Algoritmo 7 — funções exclusivas do SuperAdmin.
 pub struct ServicoAdministracao {
@@ -36,13 +26,7 @@ impl ServicoAdministracao {
 
     pub async fn cadastrar_organizador(&self, sessao: &Sessao, dados: &CadastroOrganizador) -> Resultado<Organizador> {
         sessao.exigir(Perfil::SuperAdmin)?;
-        texto_obrigatorio(&dados.razao_social, "razão social")?;
-        texto_obrigatorio(&dados.cnpj, "CNPJ")?;
-        let cnpj = Cnpj::novo(&dados.cnpj)?;
-        let novo = NovoOrganizador::novo(&dados.razao_social, cnpj.clone(), &dados.contato)?;
-        let login = self.fabrica.criar_login_organizador(novo.razao_social(), &cnpj, &dados.email, &dados.senha)?;
-        verificar_unicidade(self.usuarios.as_ref(), &login).await?;
-        self.organizadores.inserir(&login, &novo).await
+        cadastro_organizador::registrar(self.usuarios.as_ref(), self.organizadores.as_ref(), &self.fabrica, dados).await
     }
 
     pub async fn listar(&self, sessao: &Sessao) -> Resultado<Vec<Organizador>> {

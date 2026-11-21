@@ -4,7 +4,7 @@
 //!
 //! | Serviço                   | Algoritmos                                   |
 //! |---------------------------|----------------------------------------------|
-//! | [`ServicoAutenticacao`]   | 1 (login e perfil) e 2 (cadastro de cliente) |
+//! | [`ServicoAutenticacao`]   | 1 (login e perfil), 2 (cadastro de cliente) e cadastro de organizador |
 //! | [`ServicoEventos`]        | 3 (cadastro de evento) e mapa de assentos    |
 //! | [`ServicoVendas`]         | 4 (compra) e 5 (cancelamento)                |
 //! | [`ServicoRelatorios`]     | 6 (relatório e check-in)                     |
@@ -13,6 +13,7 @@
 //! Os serviços recebem as dependências por **injeção** (construtor) e só conhecem os
 //! `trait`s do domínio — nunca o PostgreSQL (Inversão de Dependência).
 
+mod cadastro_organizador;
 pub mod dados_exemplo;
 mod fabrica;
 mod servicos;
@@ -22,8 +23,9 @@ use std::sync::Arc;
 
 use dominio::portas::*;
 
+pub use cadastro_organizador::CadastroOrganizador;
 pub use fabrica::FabricaUsuarios;
-pub use servicos::administracao::{CadastroOrganizador, ServicoAdministracao};
+pub use servicos::administracao::ServicoAdministracao;
 pub use servicos::autenticacao::{CadastroCliente, ServicoAutenticacao};
 pub use servicos::eventos::ServicoEventos;
 pub use servicos::relatorios::ServicoRelatorios;

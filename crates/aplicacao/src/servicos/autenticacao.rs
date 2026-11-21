@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use dominio::entidades::{Perfil, Usuario};
+use dominio::entidades::{Organizador, Perfil, Usuario};
 use dominio::portas::{RepositorioOrganizadores, RepositorioUsuarios};
 use dominio::valores::Email;
 use dominio::{Erro, Resultado};
 
+use crate::cadastro_organizador::{self, CadastroOrganizador};
 use crate::fabrica::{FabricaUsuarios, verificar_unicidade};
 use crate::sessao::Sessao;
 
@@ -69,5 +70,11 @@ impl ServicoAutenticacao {
         let usuario = self.fabrica.criar_cliente(&dados.nome, &dados.cpf, &dados.email, &dados.senha)?;
         verificar_unicidade(self.usuarios.as_ref(), &usuario).await?;
         self.usuarios.inserir(&usuario).await
+    }
+
+    /// Cadastro feito pela própria empresa produtora ("Criar conta de organizador").
+    /// Depois do cadastro ela entra pelo mesmo login e já pode criar eventos.
+    pub async fn cadastrar_organizador(&self, dados: &CadastroOrganizador) -> Resultado<Organizador> {
+        cadastro_organizador::registrar(self.usuarios.as_ref(), self.organizadores.as_ref(), &self.fabrica, dados).await
     }
 }

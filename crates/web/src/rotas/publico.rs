@@ -1,6 +1,6 @@
 //! Páginas sem login: entrada, criação de conta e saída (Algoritmos 1 e 2).
 
-use aplicacao::CadastroCliente;
+use aplicacao::{CadastroCliente, CadastroOrganizador};
 use axum::Form;
 use axum::extract::State;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -10,7 +10,7 @@ use serde::Deserialize;
 
 use super::{redirecionar, render};
 use crate::Estado;
-use crate::paginas::{Layout, PaginaCadastro, PaginaEntrar};
+use crate::paginas::{Layout, PaginaCadastro, PaginaCadastroOrganizador, PaginaEntrar};
 use crate::sessao::Aviso;
 
 /// Página inicial de cada perfil.
@@ -88,6 +88,59 @@ pub async fn cadastrar(State(estado): State<Estado>, jar: CookieJar, Form(f): Fo
             layout: Layout::novo("Criar conta", None, None),
             nome: dados.nome,
             cpf: dados.cpf,
+            email: dados.email,
+            erro: Some(e.mensagem().to_string()),
+        }),
+    }
+}
+
+pub async fn form_cadastro_organizador() -> Response {
+    render(PaginaCadastroOrganizador {
+        layout: Layout::novo("Criar conta de organizador", None, None),
+        razao_social: String::new(),
+        cnpj: String::new(),
+        contato: String::new(),
+        email: String::new(),
+        erro: None,
+    })
+}
+
+#[derive(Deserialize)]
+pub struct FormCadastroOrganizador {
+    razao_social: String,
+    cnpj: String,
+    contato: String,
+    email: String,
+    senha: String,
+}
+
+/// Empresa produtora cria a própria conta; em seguida entra e já pode cadastrar eventos.
+pub async fn cadastrar_organizador(
+    State(estado): State<Estado>,
+    jar: CookieJar,
+    Form(f): Form<FormCadastroOrganizador>,
+) -> Response {
+    let dados = CadastroOrganizador {
+        razao_social: f.razao_social,
+        cnpj: f.cnpj,
+        contato: f.contato,
+        email: f.email,
+        senha: f.senha,
+    };
+    match estado.app.autenticacao.cadastrar_organizador(&dados).await {
+        Ok(org) => {
+            let aviso = Aviso::sucesso(format!(
+                "Conta de organizador de \"{}\" criada! Entre com o e-mail {} para cadastrar seus eventos.",
+                org.razao_social(),
+                dados.email.trim().to_lowercase()
+            ));
+            redirecionar(&estado, jar, "/entrar", aviso)
+        }
+        Err(e) => render(PaginaCadastroOrganizador {
+            layout: Layout::novo("Criar conta de organizador", None, None),
+            razao_social: dados.razao_social,
+            cnpj: dados.cnpj,
+            contato: dados.contato,
             email: dados.email,
             erro: Some(e.mensagem().to_string()),
         }),

@@ -91,6 +91,17 @@ pub struct PaginaCadastro {
 }
 
 #[derive(Template)]
+#[template(path = "cadastro_organizador.html")]
+pub struct PaginaCadastroOrganizador {
+    pub layout: Layout,
+    pub razao_social: String,
+    pub cnpj: String,
+    pub contato: String,
+    pub email: String,
+    pub erro: Option<String>,
+}
+
+#[derive(Template)]
 #[template(path = "erro.html")]
 pub struct PaginaErro {
     pub layout: Layout,

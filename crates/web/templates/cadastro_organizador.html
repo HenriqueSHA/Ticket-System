@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao estreito">
+  <h1>Criar conta de organizador</h1>
+  <p class="dica">Para empresas e produtores que vão cadastrar e vender ingressos dos seus eventos.</p>
+  {% if let Some(e) = erro %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <form method="post" action="/cadastro/organizador" class="formulario">
+    <label>Razão social / nome da produtora <input name="razao_social" value="{{ razao_social }}" required></label>
+    <label>CNPJ <input name="cnpj" value="{{ cnpj }}" placeholder="00.000.000/0000-00" required>
+      <small>O sistema confere os dígitos verificadores.</small></label>
+    <label>Contato (telefone ou responsável) <input name="contato" value="{{ contato }}" required></label>
+    <label>E-mail de acesso <input type="email" name="email" value="{{ email }}" required></label>
+    <label>Senha <input type="password" name="senha" minlength="6" required><small>Mínimo de 6 caracteres.</small></label>
+    <button class="botao">Criar conta de organizador</button>
+  </form>
+  <p class="rodape-cartao">Já tem conta? <a href="/entrar">Entrar</a> · Quer comprar ingressos? <a href="/cadastro">Conta de cliente</a></p>
+</section>
+{% endblock %}
