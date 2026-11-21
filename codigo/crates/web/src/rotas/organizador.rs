@@ -5,28 +5,28 @@ use axum::extract::{Path, State};
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::{CookieJar, Form};
 use chrono::{NaiveDate, NaiveTime};
-use dominio::entidades::{DadosEvento, Ingresso, NovaCategoria, StatusEvento, total_disponivel};
+use contrato::{CategoriaNova, EventoNovo, SEPARADOR_MENSAGENS};
+use dominio::entidades::{DadosEvento, Ingresso, Setor, StatusEvento, total_disponivel};
 use dominio::valores::Dinheiro;
 use dominio::{Erro, Resultado};
 use serde::Deserialize;
 
-use super::{inteiro, redirecionar, render, tentar};
+use super::{hoje, inteiro, redirecionar, render, tentar};
 use crate::Estado;
 use crate::paginas::*;
-use crate::sessao::{Aviso, Logado};
+use crate::sessao::{Aviso, Logado, Sessao};
 
 pub async fn eventos(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar) -> Response {
-    let lista = tentar!(estado.app.eventos.listar_do_organizador(&s).await, s, "/");
-    let hoje = estado.app.hoje();
-    let mut eventos = Vec::new();
-    for evento in lista {
-        let categorias = tentar!(estado.app.eventos.categorias(evento.id()).await, s, "/");
-        eventos.push(LinhaEventoOrganizador {
+    let lista = tentar!(estado.back.eventos.listar_do_organizador(&s).await, s, "/");
+    let hoje = hoje(&estado).await;
+    let eventos = lista
+        .into_iter()
+        .map(|(evento, categorias)| LinhaEventoOrganizador {
             realizado: evento.ja_ocorreu(hoje),
             disponiveis: total_disponivel(&categorias),
             evento,
-        });
-    }
+        })
+        .collect();
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
     (jar, render(PaginaEventosOrganizador { layout: Layout::novo("Meus eventos", Some(&s), aviso), eventos }))
         .into_response()
@@ -110,16 +110,23 @@ impl FormEvento {
     }
 }
 
-fn categoria_do_formulario(l: &LinhaCategoria) -> Resultado<NovaCategoria> {
+/// Lê uma linha de categoria do formulário. As regras (quantidade > 0, limites do mapa,
+/// capacidade) são conferidas pelo back.
+fn categoria_do_formulario(l: &LinhaCategoria) -> Resultado<CategoriaNova> {
     let preco = Dinheiro::de_texto(&l.preco)?;
-    if l.com_assento {
-        NovaCategoria::com_assento(&l.nome, preco, inteiro(&l.fileiras, "fileiras")?, inteiro(&l.por_fileira, "assentos por fileira")?)
+    let (quantidade, setor) = if l.com_assento {
+        let setor = Setor {
+            fileiras: inteiro(&l.fileiras, "fileiras")?,
+            assentos_por_fileira: inteiro(&l.por_fileira, "assentos por fileira")?,
+        };
+        (setor.fileiras * setor.assentos_por_fileira, Some(setor))
     } else {
-        NovaCategoria::sem_assento(&l.nome, preco, inteiro(&l.quantidade, "quantidade")?)
-    }
+        (inteiro(&l.quantidade, "quantidade")?, None)
+    };
+    Ok(CategoriaNova { nome: l.nome.clone(), preco, quantidade, setor })
 }
 
-fn pagina_novo(s: &aplicacao::Sessao, campos: CamposEvento, categorias: Vec<LinhaCategoria>, erros: Vec<String>) -> Response {
+fn pagina_novo(s: &Sessao, campos: CamposEvento, categorias: Vec<LinhaCategoria>, erros: Vec<String>) -> Response {
     render(PaginaFormEvento {
         layout: Layout::novo("Novo evento", Some(s), None),
         acao: "/organizador/eventos/novo".into(),
@@ -133,7 +140,7 @@ fn pagina_novo(s: &aplicacao::Sessao, campos: CamposEvento, categorias: Vec<Linh
 }
 
 pub async fn form_novo(State(estado): State<Estado>, Logado(s): Logado) -> Response {
-    tentar!(estado.app.eventos.organizador_ativo(&s).await, s, "/");
+    tentar!(estado.back.eventos.organizador_ativo(&s).await, s, "/");
     let campos = CamposEvento { permite_cancelamento: true, vendas_abertas: true, ..Default::default() };
     let categorias = vec![
         LinhaCategoria { nome: "Pista".into(), ..Default::default() },
@@ -142,45 +149,41 @@ pub async fn form_novo(State(estado): State<Estado>, Logado(s): Logado) -> Respo
     pagina_novo(&s, campos, categorias, vec![])
 }
 
-/// Algoritmo 3 — valida os dados, depois cada categoria (laço) e grava tudo junto.
+/// Algoritmo 3 — lê o formulário e envia ao back, que valida os dados, cada categoria (laço)
+/// e grava tudo junto. Os erros voltam um por linha.
 pub async fn criar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Form(f): Form<FormEvento>) -> Response {
     let (campos, linhas) = (f.campos(), f.categorias());
-    let mut erros = Vec::new();
-
-    let builder = match f.dados(None) {
-        Ok(dados) => estado.app.eventos.iniciar_cadastro(&s, dados).await,
-        Err(e) => Err(e),
-    };
-    let mut builder = match builder {
-        Ok(b) => b,
+    let dados = match f.dados(None) {
+        Ok(d) => d,
         Err(e) => return pagina_novo(&s, campos, linhas, vec![e.mensagem().to_string()]),
     };
+    let mut categorias = Vec::new();
+    let mut erros = Vec::new();
     for (i, linha) in linhas.iter().enumerate() {
-        let adicionada = categoria_do_formulario(linha).and_then(|c| builder.adicionar_categoria(c).map(|_| ()));
-        if let Err(e) = adicionada {
-            erros.push(format!("Categoria {} ({}): {}", i + 1, linha.nome.trim(), e.mensagem()));
+        match categoria_do_formulario(linha) {
+            Ok(c) => categorias.push(c),
+            Err(e) => erros.push(format!("Categoria {} ({}): {}", i + 1, linha.nome.trim(), e.mensagem())),
         }
     }
     if !erros.is_empty() {
         return pagina_novo(&s, campos, linhas, erros);
     }
-    let resultado = match builder.construir() {
-        Ok(novo) => estado.app.eventos.cadastrar(&s, &novo).await,
-        Err(e) => Err(e),
-    };
-    match resultado {
+    match estado.back.eventos.cadastrar(&s, &EventoNovo { dados, categorias }).await {
         Ok(evento) => redirecionar(
             &estado,
             jar,
             &format!("/organizador/eventos/{}", evento.id()),
             Aviso::sucesso(format!("Evento \"{}\" cadastrado (código {}). As vendas já estão abertas.", evento.nome(), evento.id())),
         ),
-        Err(e) => pagina_novo(&s, campos, linhas, vec![e.mensagem().to_string()]),
+        Err(e) => {
+            let erros = e.mensagem().split(SEPARADOR_MENSAGENS).map(str::to_string).collect();
+            pagina_novo(&s, campos, linhas, erros)
+        }
     }
 }
 
 fn pagina_editar(
-    s: &aplicacao::Sessao,
+    s: &Sessao,
     id: i64,
     campos: CamposEvento,
     capacidade_minima: i32,
@@ -199,7 +202,7 @@ fn pagina_editar(
 }
 
 pub async fn form_editar(State(estado): State<Estado>, Logado(s): Logado, Path(id): Path<i64>) -> Response {
-    let (e, categorias) = tentar!(estado.app.eventos.gerenciar(&s, id).await, s, "/organizador/eventos");
+    let (e, categorias) = tentar!(estado.back.eventos.gerenciar(&s, id).await, s, "/organizador/eventos");
     let campos = CamposEvento {
         nome: e.nome().into(),
         descricao: e.descricao().into(),
@@ -227,7 +230,7 @@ pub async fn editar(
 ) -> Response {
     let status = if f.vendas_abertas.is_some() { StatusEvento::Aberto } else { StatusEvento::Encerrado };
     let resultado = match f.dados(None) {
-        Ok(dados) => estado.app.eventos.alterar(&s, id, dados, status).await,
+        Ok(dados) => estado.back.eventos.alterar(&s, id, dados, status).await,
         Err(e) => Err(e),
     };
     match resultado {
@@ -238,7 +241,7 @@ pub async fn editar(
             Aviso::sucesso(format!("Evento \"{}\" alterado.", e.nome())),
         ),
         Err(e) => {
-            let minima = match estado.app.eventos.gerenciar(&s, id).await {
+            let minima = match estado.back.eventos.gerenciar(&s, id).await {
                 Ok((_, cats)) => soma_categorias(&cats),
                 Err(_) => 1,
             };
@@ -249,11 +252,11 @@ pub async fn editar(
 
 /// Algoritmo 6 — relatório, mapa de cada setor com assento marcado e lista de vendas.
 pub async fn relatorio(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
-    let relatorio = tentar!(estado.app.relatorios.relatorio(&s, id).await, s, "/organizador/eventos");
-    let vendas = tentar!(estado.app.relatorios.vendas_do_evento(&s, id).await, s, "/organizador/eventos");
+    let relatorio = tentar!(estado.back.relatorios.relatorio(&s, id).await, s, "/organizador/eventos");
+    let vendas = tentar!(estado.back.relatorios.vendas_do_evento(&s, id).await, s, "/organizador/eventos");
     let mut mapas = Vec::new();
     for c in relatorio.categorias.iter().filter(|c| c.com_assento()) {
-        mapas.push(tentar!(estado.app.eventos.mapa(c).await, s, "/organizador/eventos"));
+        mapas.push(tentar!(estado.back.eventos.mapa(c).await, s, "/organizador/eventos"));
     }
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
     let pagina = PaginaRelatorio { layout: Layout::novo("Relatório do evento", Some(&s), aviso), relatorio, mapas, vendas };
@@ -261,7 +264,7 @@ pub async fn relatorio(State(estado): State<Estado>, Logado(s): Logado, jar: Coo
 }
 
 pub async fn form_checkin(State(estado): State<Estado>, Logado(s): Logado) -> Response {
-    tentar!(estado.app.eventos.organizador_ativo(&s).await, s, "/");
+    tentar!(estado.back.eventos.organizador_ativo(&s).await, s, "/");
     render(PaginaCheckin { layout: Layout::novo("Check-in", Some(&s), None), codigo: String::new(), resultado: None })
 }
 
@@ -274,7 +277,7 @@ pub struct FormCheckin {
 pub async fn checkin(State(estado): State<Estado>, Logado(s): Logado, Form(f): Form<FormCheckin>) -> Response {
     let numero = f.codigo.trim().trim_start_matches('0');
     let resultado = match numero.parse::<i64>() {
-        Ok(id) => match estado.app.relatorios.registrar_presenca(&s, id).await {
+        Ok(id) => match estado.back.relatorios.registrar_presenca(&s, id).await {
             Ok(v) => Aviso::sucesso(format!("Entrada liberada — ingresso nº {:06}.", v.id())),
             Err(e) => Aviso::erro(e.mensagem()),
         },
@@ -290,7 +293,7 @@ pub async fn checkin_da_lista(
     jar: CookieJar,
     Path((id, venda)): Path<(i64, i64)>,
 ) -> Response {
-    let aviso = match estado.app.relatorios.registrar_presenca(&s, venda).await {
+    let aviso = match estado.back.relatorios.registrar_presenca(&s, venda).await {
         Ok(v) => Aviso::sucesso(format!("Entrada registrada — ingresso nº {:06}.", v.id())),
         Err(e) => Aviso::erro(e.mensagem()),
     };
@@ -329,18 +332,18 @@ impl FormCategoria {
 
 async fn pagina_gerenciar(
     estado: &Estado,
-    s: &aplicacao::Sessao,
+    s: &Sessao,
     id: i64,
     aviso: Option<Aviso>,
     nova: LinhaCategoria,
     erro_categoria: Option<String>,
 ) -> Response {
-    let (evento, categorias) = tentar!(estado.app.eventos.gerenciar(s, id).await, *s, "/organizador/eventos");
+    let (evento, categorias) = tentar!(estado.back.eventos.gerenciar(s, id).await, *s, "/organizador/eventos");
     render(PaginaGerenciarEvento {
         layout: Layout::novo(evento.nome(), Some(s), aviso),
         vagas_para_categorias: evento.capacidade() - soma_categorias(&categorias),
         disponiveis: total_disponivel(&categorias),
-        realizado: evento.ja_ocorreu(estado.app.hoje()),
+        realizado: evento.ja_ocorreu(hoje(estado).await),
         evento,
         categorias,
         nova,
@@ -364,7 +367,7 @@ pub async fn adicionar_categoria(
 ) -> Response {
     let linha = f.linha();
     let resultado = match categoria_do_formulario(&linha) {
-        Ok(cat) => estado.app.eventos.adicionar_categoria(&s, id, cat).await,
+        Ok(cat) => estado.back.eventos.adicionar_categoria(&s, id, &cat).await,
         Err(e) => Err(e),
     };
     match resultado {
@@ -384,7 +387,7 @@ pub async fn form_categoria(
     Path((id, categoria)): Path<(i64, i64)>,
 ) -> Response {
     let voltar = format!("/organizador/eventos/{id}");
-    let (evento, ingresso) = tentar!(estado.app.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
+    let (evento, ingresso) = tentar!(estado.back.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
     render(PaginaFormCategoria {
         layout: Layout::novo("Editar categoria", Some(&s), None),
         nome: ingresso.categoria().to_string(),
@@ -415,7 +418,7 @@ pub async fn alterar_categoria(
     let resultado = async {
         let preco = Dinheiro::de_texto(&f.preco)?;
         let quantidade = quantidade.map(|q| inteiro(q, "quantidade")).transpose()?;
-        estado.app.eventos.alterar_categoria(&s, id, categoria, &f.nome, preco, quantidade).await
+        estado.back.eventos.alterar_categoria(&s, id, categoria, &f.nome, preco, quantidade).await
     }
     .await;
     match resultado {
@@ -433,7 +436,7 @@ pub async fn alterar_categoria(
         ),
         Err(e) => {
             let voltar = format!("/organizador/eventos/{id}");
-            let (evento, ingresso) = tentar!(estado.app.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
+            let (evento, ingresso) = tentar!(estado.back.eventos.categoria_do_organizador(&s, id, categoria).await, s, voltar);
             render(PaginaFormCategoria {
                 layout: Layout::novo("Editar categoria", Some(&s), None),
                 nome: f.nome,
@@ -453,7 +456,7 @@ pub async fn remover_categoria(
     jar: CookieJar,
     Path((id, categoria)): Path<(i64, i64)>,
 ) -> Response {
-    let aviso = match estado.app.eventos.remover_categoria(&s, id, categoria).await {
+    let aviso = match estado.back.eventos.remover_categoria(&s, id, categoria).await {
         Ok(()) => Aviso::sucesso("Categoria removida."),
         Err(e) => Aviso::erro(e.mensagem()),
     };
@@ -462,7 +465,7 @@ pub async fn remover_categoria(
 
 /// Exclui o evento (só sem vendas; com vendas, o organizador encerra as vendas).
 pub async fn excluir(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
-    match estado.app.eventos.remover(&s, id).await {
+    match estado.back.eventos.remover(&s, id).await {
         Ok(()) => redirecionar(&estado, jar, "/organizador/eventos", Aviso::sucesso("Evento excluído.")),
         Err(e) => redirecionar(&estado, jar, &format!("/organizador/eventos/{id}"), Aviso::erro(e.mensagem())),
     }

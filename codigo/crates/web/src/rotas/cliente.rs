@@ -1,6 +1,6 @@
 //! Páginas do cliente: eventos, compra (Algoritmo 4), comprovante, histórico e cancelamento (Algoritmo 5).
 
-use aplicacao::Pedido;
+use contrato::Pedido;
 use axum::Form;
 use axum::extract::{Path, Query, State};
 use axum::response::{IntoResponse, Response};
@@ -9,13 +9,13 @@ use dominio::entidades::{Codificavel, FormaPagamento, StatusVenda, TipoIngresso,
 use dominio::{Erro, Resultado};
 use serde::Deserialize;
 
-use super::{redirecionar, render, tentar};
+use super::{hoje, redirecionar, render, tentar};
 use crate::Estado;
 use crate::paginas::*;
 use crate::sessao::{Aviso, Logado};
 
 pub async fn eventos(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar) -> Response {
-    let lista = tentar!(estado.app.eventos.listar_disponiveis().await, s, "/");
+    let lista = tentar!(estado.back.eventos.listar_disponiveis().await, s, "/");
     let cartoes = lista
         .into_iter()
         .map(|(evento, categorias)| CartaoEvento { disponiveis: total_disponivel(&categorias), evento, categorias })
@@ -37,7 +37,7 @@ pub async fn comprar(
     Path(id): Path<i64>,
     Query(escolha): Query<Escolha>,
 ) -> Response {
-    let app = &estado.app;
+    let app = &estado.back;
     // fluxograma 4, passo 1: o evento está à venda?
     let evento = tentar!(app.vendas.evento_para_venda(id).await, s, "/eventos");
     let categorias = tentar!(app.eventos.categorias(id).await, s, "/eventos");
@@ -100,7 +100,7 @@ pub async fn resumo(
 ) -> Response {
     let voltar = format!("/eventos/{id}?categoria={}", f.categoria);
     let preparado = match montar_pedido(id, &f) {
-        Ok(pedido) => estado.app.vendas.preparar(&s, &pedido).await,
+        Ok(pedido) => estado.back.vendas.preparar(&s, &pedido).await,
         Err(e) => Err(e),
     };
     match preparado {
@@ -123,7 +123,7 @@ pub async fn confirmar(
 ) -> Response {
     let voltar = format!("/eventos/{id}?categoria={}", f.categoria);
     let confirmado = match montar_pedido(id, &f) {
-        Ok(pedido) => estado.app.vendas.confirmar(&s, &pedido).await,
+        Ok(pedido) => estado.back.vendas.confirmar(&s, &pedido).await,
         Err(e) => Err(e),
     };
     match confirmado {
@@ -135,15 +135,15 @@ pub async fn confirmar(
 }
 
 pub async fn comprovante(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
-    let item = tentar!(estado.app.vendas.comprovante(&s, id).await, s, "/meus-ingressos");
+    let item = tentar!(estado.back.vendas.comprovante(&s, id).await, s, "/meus-ingressos");
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
     let pagina = PaginaComprovante { layout: Layout::novo("Comprovante", Some(&s), aviso), cliente: s.nome.clone(), item };
     (jar, render(pagina)).into_response()
 }
 
 pub async fn meus_ingressos(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar) -> Response {
-    let itens = tentar!(estado.app.vendas.historico(&s).await, s, "/eventos");
-    let hoje = estado.app.hoje();
+    let itens = tentar!(estado.back.vendas.historico(&s).await, s, "/eventos");
+    let hoje = hoje(&estado).await;
     let linhas = itens
         .into_iter()
         .map(|item| {
@@ -158,7 +158,7 @@ pub async fn meus_ingressos(State(estado): State<Estado>, Logado(s): Logado, jar
 
 /// Algoritmo 5 — cancelar compra.
 pub async fn cancelar(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar, Path(id): Path<i64>) -> Response {
-    let aviso = match estado.app.vendas.cancelar(&s, id).await {
+    let aviso = match estado.back.vendas.cancelar(&s, id).await {
         Ok(v) => Aviso::sucesso(format!("Compra nº {} cancelada. Valor a estornar: {}.", v.id(), v.valor())),
         Err(e) => Aviso::erro(e.mensagem()),
     };

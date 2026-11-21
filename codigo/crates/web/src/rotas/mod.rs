@@ -5,7 +5,7 @@ mod cliente;
 mod organizador;
 mod publico;
 
-use aplicacao::Sessao;
+use crate::sessao::Sessao;
 use askama::Template;
 use axum::Router;
 use axum::http::{StatusCode, header};
@@ -90,6 +90,11 @@ pub(crate) fn falha(sessao: Option<&Sessao>, erro: &Erro, voltar: &str) -> Respo
         voltar: voltar.to_string(),
     };
     (status, render(pagina)).into_response()
+}
+
+/// Data de hoje segundo o back (se ele não responder, usa a do próprio servidor).
+pub(crate) async fn hoje(estado: &Estado) -> chrono::NaiveDate {
+    estado.back.hoje().await.unwrap_or_else(|_| chrono::Local::now().date_naive())
 }
 
 /// Lê um número inteiro de um campo de formulário.

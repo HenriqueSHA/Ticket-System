@@ -1,47 +1,74 @@
-# Sistema de Ingressos — aplicação + PostgreSQL.
+# Sistema de Ingressos — 3 contêineres: front (web) · back (API) · db (PostgreSQL).
 #
-# Tudo em contêiner (servidor):   docker compose up -d --build
-# Só o banco (desenvolvimento):   docker compose up -d db   e depois   cargo run
-# Parar:                          docker compose down        (-v apaga os dados)
+#   Tudo (servidor):        docker compose up -d --build
+#   Só o banco (desenv.):   docker compose up -d db     e depois rodar back e front com cargo
+#   Parar:                  docker compose down          (-v apaga os dados!)
 #
-# As variáveis vêm do arquivo .env (modelo em .env.example). Em produção, troque a senha!
+#   navegador ──► front :3000 ──(rede "frontal")──► back :8080 ──(rede "dados")──► db :5432
+#
+# O front não está na rede "dados": ele não consegue acessar o banco, só a API.
+# As variáveis vêm do .env (modelo em .env.example). Em produção, troque a senha!
 
 name: ticket-system
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: ingressos-postgres
+    container_name: ingressos-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ingressos}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ingressos}
       POSTGRES_DB: ${POSTGRES_DB:-ingressos}
     ports:
-      # só acessível pela própria máquina (usado pelo `cargo run` no desenvolvimento)
+      # só acessível pela própria máquina (usado pelo back rodando com `cargo run`)
       - "127.0.0.1:${PORTA_BANCO:-5433}:5432"
     volumes:
       - dados-postgres:/var/lib/postgresql/data
+    networks: [dados]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ingressos} -d ${POSTGRES_DB:-ingressos}"]
       interval: 2s
       timeout: 3s
       retries: 15
 
-  app:
-    build: ./codigo
-    image: ticket-system:latest
-    container_name: ingressos-app
+  back:
+    build:
+      context: ./codigo
+      target: back
+    image: ${IMAGEM_BACK:-ticket-system-back:latest}
+    container_name: ingressos-back
     restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ingressos}:${POSTGRES_PASSWORD:-ingressos}@db:5432/${POSTGRES_DB:-ingressos}
+      ENDERECO_API: 0.0.0.0:8080
+    expose: ["8080"]            # sem porta publicada: só o front chega aqui
+    networks: [frontal, dados]
+
+  front:
+    build:
+      context: ./codigo
+      target: front
+    image: ${IMAGEM_FRONT:-ticket-system-front:latest}
+    container_name: ingressos-front
+    restart: unless-stopped
+    depends_on:
+      back:
+        condition: service_healthy
+    environment:
+      URL_BACK: http://back:8080
       ENDERECO: 0.0.0.0:3000
       COOKIE_SEGURO: ${COOKIE_SEGURO:-false}
     ports:
       - "${PORTA_WEB:-3000}:3000"
+    networks: [frontal]
+
+networks:
+  frontal:
+  dados:
 
 volumes:
   dados-postgres:

@@ -1,30 +1,34 @@
-//! # Interface web
+//! # Front-end — interface web
 //!
-//! Camada de apresentação: recebe as requisições do navegador, chama os casos de uso da
-//! [`aplicacao`] e devolve páginas HTML. Não contém regras de negócio.
+//! Camada de apresentação (contêiner `front`): recebe as requisições do navegador, chama o
+//! **back** pela API HTTP/JSON e devolve páginas HTML. Não contém regras de negócio nem acessa
+//! o banco de dados.
 //!
+//! - [`backend`]: cliente HTTP da API (mesmas operações dos casos de uso);
 //! - [`rotas`]: endereços e *handlers* (um módulo por perfil);
 //! - [`sessao`]: login por cookie e mensagens de aviso;
 //! - [`paginas`]: modelos das páginas (templates em `templates/`).
 
+pub mod backend;
 pub mod paginas;
 pub mod rotas;
 pub mod sessao;
 
 use std::sync::Arc;
 
-use aplicacao::Aplicacao;
+use backend::Backend;
 use sessao::ArmazemSessoes;
 
 /// Estado compartilhado por todas as requisições.
 #[derive(Clone)]
 pub struct Estado {
-    pub app: Arc<Aplicacao>,
+    pub back: Arc<Backend>,
     pub sessoes: Arc<ArmazemSessoes>,
 }
 
 impl Estado {
-    pub fn novo(app: Aplicacao, cookies_seguros: bool) -> Self {
-        Estado { app: Arc::new(app), sessoes: Arc::new(ArmazemSessoes::novo(cookies_seguros)) }
+    /// `url_back`: endereço da API, ex.: `http://back:8080`.
+    pub fn novo(url_back: &str, cookies_seguros: bool) -> Self {
+        Estado { back: Arc::new(Backend::novo(url_back)), sessoes: Arc::new(ArmazemSessoes::novo(cookies_seguros)) }
     }
 }

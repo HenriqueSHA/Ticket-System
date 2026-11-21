@@ -1,16 +1,38 @@
-//! Sessões de login (cookie com um código aleatório) e avisos de uma única exibição.
+//! Sessão de login no front e avisos de uma única exibição.
+//!
+//! O **back** emite o token no login; o front o guarda num cookie `HttpOnly` e mantém um cache
+//! token → sessão para não consultar o back a cada página. Se o front reiniciar, a sessão é
+//! recuperada no back pelo token.
 
 use std::collections::HashMap;
 use std::sync::RwLock;
 
-use aplicacao::Sessao;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 
+use contrato::Sessao as SessaoApi;
+use dominio::entidades::Perfil;
+
 use crate::Estado;
+
+/// Usuário logado no front: os dados da sessão do back + o token para chamar a API.
+#[derive(Debug, Clone)]
+pub struct Sessao {
+    pub token: String,
+    pub usuario_id: i64,
+    pub nome: String,
+    pub perfil: Perfil,
+    pub organizador_id: Option<i64>,
+}
+
+impl Sessao {
+    pub fn nova(token: String, s: SessaoApi) -> Self {
+        Sessao { token, usuario_id: s.usuario_id, nome: s.nome, perfil: s.perfil, organizador_id: s.organizador_id }
+    }
+}
 
 pub const COOKIE_SESSAO: &str = "sessao";
 pub const COOKIE_AVISO: &str = "aviso";
@@ -58,10 +80,15 @@ impl ArmazemSessoes {
             .build()
     }
 
+    /// Guarda a sessão no cache e o token (emitido pelo back) no cookie.
     pub fn abrir(&self, jar: CookieJar, sessao: Sessao) -> CookieJar {
-        let codigo = novo_codigo();
-        self.sessoes.write().expect("sessões").insert(codigo.clone(), sessao);
-        jar.add(self.cookie(COOKIE_SESSAO, codigo))
+        let token = sessao.token.clone();
+        self.sessoes.write().expect("sessões").insert(token.clone(), sessao);
+        jar.add(self.cookie(COOKIE_SESSAO, token))
+    }
+
+    fn lembrar(&self, sessao: &Sessao) {
+        self.sessoes.write().expect("sessões").insert(sessao.token.clone(), sessao.clone());
     }
 
     pub fn fechar(&self, jar: CookieJar) -> CookieJar {
@@ -103,6 +130,16 @@ impl FromRequestParts<Estado> for Logado {
 
     async fn from_request_parts(parts: &mut Parts, estado: &Estado) -> Result<Self, Self::Rejection> {
         let jar = CookieJar::from_headers(&parts.headers);
-        estado.sessoes.atual(&jar).map(Logado).ok_or_else(|| Redirect::to("/entrar").into_response())
+        if let Some(sessao) = estado.sessoes.atual(&jar) {
+            return Ok(Logado(sessao));
+        }
+        // cookie com token, mas fora do cache (front reiniciou): pergunta ao back
+        if let Some(token) = jar.get(COOKIE_SESSAO).map(|c| c.value().to_string())
+            && let Ok(sessao) = estado.back.autenticacao.sessao(&token).await
+        {
+            estado.sessoes.lembrar(&sessao);
+            return Ok(Logado(sessao));
+        }
+        Err(Redirect::to("/entrar").into_response())
     }
 }

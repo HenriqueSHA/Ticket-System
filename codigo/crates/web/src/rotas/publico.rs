@@ -1,6 +1,6 @@
 //! Páginas sem login: entrada, criação de conta e saída (Algoritmos 1 e 2).
 
-use aplicacao::{CadastroCliente, CadastroOrganizador};
+use contrato::{CadastroCliente, CadastroOrganizador};
 use axum::Form;
 use axum::extract::State;
 use axum::response::{IntoResponse, Redirect, Response};
@@ -43,7 +43,7 @@ pub struct FormEntrar {
 
 /// Algoritmo 1: confere o login e direciona conforme o perfil.
 pub async fn entrar(State(estado): State<Estado>, jar: CookieJar, Form(f): Form<FormEntrar>) -> Response {
-    match estado.app.autenticacao.entrar(&f.email, &f.senha).await {
+    match estado.back.autenticacao.entrar(&f.email, &f.senha).await {
         Ok(sessao) => {
             let destino = inicio_do_perfil(sessao.perfil);
             let aviso = Aviso::sucesso(format!("Bem-vindo(a), {}!", sessao.nome));
@@ -79,9 +79,9 @@ pub struct FormCadastro {
 /// Algoritmo 2: se algum dado for inválido, o formulário volta preenchido com a mensagem.
 pub async fn cadastrar(State(estado): State<Estado>, jar: CookieJar, Form(f): Form<FormCadastro>) -> Response {
     let dados = CadastroCliente { nome: f.nome, cpf: f.cpf, email: f.email, senha: f.senha };
-    match estado.app.autenticacao.cadastrar_cliente(&dados).await {
+    match estado.back.autenticacao.cadastrar_cliente(&dados).await {
         Ok(u) => {
-            let aviso = Aviso::sucesso(format!("Conta criada! Entre com o e-mail {}.", u.email()));
+            let aviso = Aviso::sucesso(format!("Conta criada! Entre com o e-mail {}.", u.email));
             redirecionar(&estado, jar, "/entrar", aviso)
         }
         Err(e) => render(PaginaCadastro {
@@ -127,7 +127,7 @@ pub async fn cadastrar_organizador(
         email: f.email,
         senha: f.senha,
     };
-    match estado.app.autenticacao.cadastrar_organizador(&dados).await {
+    match estado.back.autenticacao.cadastrar_organizador(&dados).await {
         Ok(org) => {
             let aviso = Aviso::sucesso(format!(
                 "Conta de organizador de \"{}\" criada! Entre com o e-mail {} para cadastrar seus eventos.",
@@ -148,6 +148,9 @@ pub async fn cadastrar_organizador(
 }
 
 pub async fn sair(State(estado): State<Estado>, jar: CookieJar) -> Response {
+    if let Some(s) = estado.sessoes.atual(&jar) {
+        let _ = estado.back.autenticacao.sair(&s).await; // revoga o token no back
+    }
     let jar = estado.sessoes.fechar(jar);
     redirecionar(&estado, jar, "/entrar", Aviso::sucesso("Você saiu do sistema."))
 }

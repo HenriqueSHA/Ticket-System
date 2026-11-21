@@ -1,6 +1,7 @@
 # Sistema de Cadastro e Venda de Ingressos — código-fonte
 
-Aplicação web em **Rust** com banco de dados **PostgreSQL** (Equipe 11 — A3 UNIFACS 2026.2).
+Aplicação web em **Rust** com banco de dados **PostgreSQL** (Equipe 11 — A3 UNIFACS 2026.2),
+em **3 contêineres**: front (interface web) · back (API REST) · db (PostgreSQL).
 Visão geral do trabalho e dos documentos: [README da raiz](../README.md).
 
 > Os comandos `docker compose` rodam na **raiz do repositório** (onde está o `docker-compose.yml`);
@@ -16,7 +17,7 @@ Pré-requisito: Docker com o plugin Compose.
 git clone https://github.com/HenriqueSHA/Ticket-System.git
 cd Ticket-System              # raiz do repositório
 cp .env.example .env          # troque POSTGRES_PASSWORD!
-docker compose up -d --build  # compila a imagem e sobe app + PostgreSQL
+docker compose up -d --build  # compila as imagens e sobe front + back + banco
 ```
 
 O sistema fica em **http://IP-DO-SERVIDOR:3000** (porta configurável em `PORTA_WEB`).
@@ -40,19 +41,32 @@ docker compose down               # parar (os dados ficam no volume)
 docker compose down -v            # parar e APAGAR o banco
 ```
 
-A imagem é construída em três estágios (`Dockerfile`): as dependências ficam em cache, o
-executável é compilado em modo *release* e a imagem final contém só o binário (≈120 MB),
-rodando com um usuário sem privilégios. As tabelas são criadas automaticamente na primeira
-execução. `GET /saude` responde `ok` (usado pelo healthcheck).
+```
+navegador ──► front :3000 ──(rede "frontal")──► back :8080 ──(rede "dados")──► db :5432
+```
+
+| Serviço | Imagem | Porta | Acessa |
+|---------|--------|-------|--------|
+| `front` | `ticket-system-front` (≈120 MB) | 3000 (pública) | só o back, por HTTP/JSON |
+| `back`  | `ticket-system-back` (≈120 MB) | 8080 (só rede interna) | o banco |
+| `db`    | `postgres:16-alpine` | 5432 (só 127.0.0.1:5433) | — |
+
+O `Dockerfile` tem um alvo por serviço (`--target back` / `--target front`); os dois
+compartilham a compilação (dependências em cache com cargo-chef) e as imagens finais contêm só
+o executável, rodando sem privilégios. O front não está na rede do banco: não consegue
+acessá-lo nem por engano. As tabelas são criadas pelo back na primeira execução.
+Healthchecks: `GET /api/saude` (back) e `GET /saude` (front).
 
 ### Desenvolvimento (na sua máquina)
 
 Pré-requisitos: [Rust](https://rustup.rs) e Docker.
 
 ```bash
-cp .env.example .env                 # na raiz do repositório
-docker compose up -d db              # só o PostgreSQL (porta 5433)
-cd codigo && cargo run               # compila e inicia o sistema (lê o .env da raiz)
+cp .env.example .env                       # na raiz do repositório
+docker compose up -d db                    # só o PostgreSQL (porta 5433)
+cd codigo
+cargo run --bin ingressos-api              # back  (terminal 1) — http://127.0.0.1:8080/api
+cargo run --bin ingressos-web              # front (terminal 2) — http://127.0.0.1:3000
 ```
 
 Abra **http://127.0.0.1:3000**. Na primeira execução o banco recebe dados de demonstração:
@@ -82,9 +96,17 @@ dos clientes é preservado); o novo preço vale só para as próximas vendas.
 ## Testes
 
 ```bash
-cargo test                  # 31 testes (domínio + cenários com repositórios em memória)
+cargo test                  # 46 testes: domínio, cenários, API por HTTP e ponta a ponta (front + back)
 cargo test -- --ignored     # + teste de integração no PostgreSQL real (precisa do docker)
 ```
+
+| Onde | O que testa |
+|------|-------------|
+| `crates/dominio` (testes unitários) | CPF/CNPJ, e-mail, dinheiro, JSON, Builder, Strategy, matriz de assentos |
+| `crates/aplicacao/tests/cenarios.rs` | casos de uso com repositórios em memória (Testes 1, 2 e 3 do relatório) |
+| `crates/aplicacao/tests/postgres.rs` | os mesmos fluxos no PostgreSQL real (`--ignored`) |
+| `crates/api/tests/api.rs` | a API por HTTP: códigos de resposta, erros em JSON, token, permissões |
+| `crates/web/tests/ponta_a_ponta.rs` | front + back juntos, navegando pelas telas como um navegador |
 
 Os cenários pedidos na seção 15 do relatório estão em `crates/aplicacao/tests/cenarios.rs`:
 **Teste 1** (normal — compra com assento), **Teste 2** (alternativo — meia-entrada sem assento e
@@ -112,13 +134,27 @@ codigo/
     │   ├── memoria.rs        repositórios em memória (testes)
     │   ├── seguranca.rs      hash de senha Argon2
     │   └── relogio.rs        relógio do sistema / relógio fixo
-    └── web/                  interface gráfica (Axum + templates HTML/CSS)
+    ├── contrato/             tipos JSON trocados entre front e back
+    ├── api/                  BACK: API REST (Axum) — binário ingressos-api
+    │   ├── src/rotas/        rotas por perfil (público, cliente, organizador, admin)
+    │   └── src/main.rs       composition root: PostgreSQL + Argon2 + relógio → Aplicacao
+    └── web/                  FRONT: interface (Axum + templates) — binário ingressos-web
+        ├── src/backend.rs    cliente HTTP da API (mesmas operações dos casos de uso)
         ├── src/rotas/        páginas de cada perfil
         ├── templates/        HTML (Askama, verificado na compilação)
         └── static/           CSS
 ```
 
-A dependência sempre aponta para dentro: `web → aplicacao → dominio ← infraestrutura`.
+Dependências entre os crates (a seta aponta para quem é usado):
+
+```
+web (front) ──► contrato ──► aplicacao ──► dominio ◄── infraestrutura
+                    ▲                                        ▲
+api (back) ─────────┴──────────── usa os dois ───────────────┘
+```
+
+O front só conhece os **tipos** (via `contrato`); quem executa os casos de uso e acessa o
+banco é exclusivamente o back.
 
 ### Algoritmos do relatório × código
 
@@ -141,7 +177,7 @@ A dependência sempre aponta para dentro: `web → aplicacao → dominio ← inf
 - **O** — novos tipos de ingresso entram como uma nova `PoliticaPreco`, sem alterar a venda.
 - **L** — `RepositoriosMemoria` e os repositórios PostgreSQL são intercambiáveis (os mesmos testes passam nos dois).
 - **I** — interfaces separadas: `RepositorioUsuarios`, `RepositorioOrganizadores`, `RepositorioEventos`, `RepositorioVendas`, `HashSenha`, `Relogio`.
-- **D** — os casos de uso dependem só dos `trait`s; as implementações são injetadas em `web/src/main.rs`.
+- **D** — os casos de uso dependem só dos `trait`s; as implementações são injetadas em `api/src/main.rs`.
 
 ### Padrões de projeto
 
@@ -152,7 +188,8 @@ A dependência sempre aponta para dentro: `web → aplicacao → dominio ← inf
 | Builder                | `EventoBuilder` (`dominio/src/entidades/evento.rs`)             |
 | Factory                | `FabricaUsuarios` (`aplicacao/src/fabrica.rs`)                  |
 | Facade                 | `Aplicacao` (`aplicacao/src/lib.rs`)                            |
-| Injeção de dependência | `Dependencias` + `web/src/main.rs` (composition root)           |
+| Injeção de dependência | `Dependencias` + `api/src/main.rs` (composition root)           |
+| Remote Facade / DTO    | `contrato` + `web/src/backend.rs` (front chama o back por HTTP) |
 | Value Object           | `Cpf`, `Cnpj`, `Email`, `Dinheiro`                              |
 | Post/Redirect/Get      | rotas da web (aviso após gravar)                                |
 

@@ -42,17 +42,17 @@ A3/
 - **Checklist:** scripts rodam nos caminhos novos ✔ · nada de `entrega3/`, `entrega4/`, `entregas/` soltos na raiz ✔
   · dados do banco migrados para o volume `ticket-system-dados` ✔ (o volume antigo `codigo_dados-postgres` ficou como backup)
 
-## Fase 2 — Arquitetura em 3 contêineres (front · back · banco)
+## Fase 2 — Arquitetura em 3 contêineres (front · back · banco) ✅
 ```
 navegador ──► front (web, :3000) ──HTTP/JSON──► back (api, :8080, só rede interna) ──► db (PostgreSQL)
 ```
 - [x] 2.1 Crate `contrato`: tipos JSON (DTOs) compartilhados por front e back
 - [x] 2.2 Crate `api` (back): REST JSON com Axum sobre os casos de uso existentes; autenticação por token (back emite, front guarda em cookie); erros com código HTTP certo
 - [x] 2.3 Testes da API (rotas, códigos HTTP, permissões) com repositórios em memória
-- [ ] 2.4 Front: trocar a chamada direta à `Aplicacao` por um cliente HTTP (`trait` + implementação reqwest) — as telas continuam as mesmas
-- [ ] 2.5 Dockerfile com um alvo por serviço (`api`, `web`) + `docker-compose.yml` com `front`, `back`, `db` (back e db sem porta pública)
-- [ ] 2.6 Subir os 3 contêineres, healthchecks, testar todos os fluxos pelo navegador
-- **Checklist:** `docker compose ps` mostra 3 serviços healthy · front não acessa o banco · todos os testes passam · commit/push
+- [x] 2.4 Front: trocar a chamada direta à `Aplicacao` por um cliente HTTP (`trait` + implementação reqwest) — as telas continuam as mesmas
+- [x] 2.5 Dockerfile com um alvo por serviço (`api`, `web`) + `docker-compose.yml` com `front`, `back`, `db` (back e db sem porta pública)
+- [x] 2.6 Subir os 3 contêineres, healthchecks, testar todos os fluxos pelo navegador
+- **Checklist:** `docker compose ps` mostra 3 serviços healthy ✔ · front não acessa o banco (nem resolve o nome `db`) ✔ · back sem porta pública ✔ · 46 testes passam ✔ · commit/push ✔
 
 ## Fase 3 — Qualidade, testes e CI/CD
 - [ ] 3.1 Revisão do código (code review): erros, duplicações, otimizações (ex.: N+1 consultas na lista de eventos, índices no banco)

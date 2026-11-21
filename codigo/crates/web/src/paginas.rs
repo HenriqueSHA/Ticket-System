@@ -1,14 +1,14 @@
 //! Modelos das páginas. Cada `struct` é ligada a um arquivo HTML da pasta `templates/`
 //! (biblioteca Askama: o template é verificado na compilação).
 
-use aplicacao::{ResumoCompra, Sessao};
+use contrato::ResumoCompra;
 use askama::Template;
 #[allow(unused_imports)] // usado dentro dos templates (ex.: status().codigo())
 use dominio::entidades::Codificavel;
 use dominio::entidades::*;
 use dominio::valores::Dinheiro;
 
-use crate::sessao::Aviso;
+use crate::sessao::{Aviso, Sessao};
 
 /// Filtros usados nos templates: `{{ evento.data()|data }}`.
 mod filters {
