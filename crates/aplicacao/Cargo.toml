@@ -1,0 +1,16 @@
+[package]
+name = "aplicacao"
+description = "Camada de aplicação: casos de uso (Algoritmos 1 a 7 do relatório)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+dominio.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+infraestrutura.workspace = true
+tokio.workspace = true
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres"] }

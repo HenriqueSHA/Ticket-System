@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1>Eventos disponíveis</h1>
+{% if cartoes.is_empty() %}<p class="vazio">Nenhum evento disponível no momento.</p>{% endif %}
+<div class="grade">
+  {% for c in cartoes %}
+  <article class="cartao evento">
+    <h2>{{ c.evento.nome() }}</h2>
+    <p class="meta">📅 {{ c.evento.data()|data }} às {{ c.evento.horario()|hora }} · 📍 {{ c.evento.local() }}</p>
+    {% if !c.evento.descricao().is_empty() %}<p>{{ c.evento.descricao() }}</p>{% endif %}
+    <table class="tabela compacta">
+      {% for i in c.categorias %}
+      <tr><td>{{ i.categoria() }}</td><td class="num">{{ i.preco() }}</td>
+          <td class="num">{% if i.esgotado() %}<span class="selo cinza">esgotado</span>{% else %}{{ i.disponivel() }} disp.{% endif %}</td></tr>
+      {% endfor %}
+    </table>
+    <a class="botao" href="/eventos/{{ c.evento.id() }}">Comprar ingresso</a>
+  </article>
+  {% endfor %}
+</div>
+{% endblock %}

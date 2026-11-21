@@ -1,0 +1,10 @@
+[package]
+name = "dominio"
+description = "Camada de domínio: entidades, objetos de valor, regras de negócio e portas (interfaces)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true

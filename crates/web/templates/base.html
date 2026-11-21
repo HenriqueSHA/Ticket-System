@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ layout.titulo }} · Ingressos</title>
+  <link rel="stylesheet" href="/estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <a class="marca" href="/">🎟️ Ingressos <small>Equipe 11</small></a>
+    <nav>
+      {% for item in layout.menu %}<a href="{{ item.href }}">{{ item.texto }}</a>{% endfor %}
+    </nav>
+    {% if let Some(nome) = layout.usuario %}
+    <div class="usuario">
+      <span>{{ nome }}{% if let Some(p) = layout.perfil %} <em>{{ p }}</em>{% endif %}</span>
+      <form method="post" action="/sair"><button class="link">Sair</button></form>
+    </div>
+    {% endif %}
+  </header>
+  <main>
+    {% if let Some(aviso) = layout.aviso %}
+    <div class="aviso {% if aviso.sucesso %}sucesso{% else %}erro{% endif %}">{{ aviso.texto }}</div>
+    {% endif %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  <footer>Sistema de Cadastro e Venda de Ingressos · A3 Algoritmos e Programação · UNIFACS 2026.2</footer>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="titulo-acao"><h1>Meus eventos</h1><a class="botao" href="/organizador/eventos/novo">+ Novo evento</a></div>
+{% if eventos.is_empty() %}<p class="vazio">Nenhum evento cadastrado.</p>{% else %}
+<table class="tabela">
+  <thead><tr><th>Cód.</th><th>Evento</th><th>Data</th><th>Local</th><th class="num">Vendidos</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for l in eventos %}
+  <tr class="{% if l.realizado %}passado{% endif %}">
+    <td>{{ l.evento.id() }}</td>
+    <td>{{ l.evento.nome() }}</td>
+    <td>{{ l.evento.data()|data }} {{ l.evento.horario()|hora }}</td>
+    <td>{{ l.evento.local() }}</td>
+    <td class="num">{{ l.evento.total_vendido() }} / {{ l.evento.capacidade() }}</td>
+    <td>{% if l.realizado %}<span class="selo cinza">Realizado</span>{% else %}<span class="selo {{ l.evento.status().codigo() }}">{{ l.evento.status().nome() }}</span>{% endif %}</td>
+    <td class="acoes-linha"><a class="botao pequeno" href="/organizador/eventos/{{ l.evento.id() }}/relatorio">Relatório</a>
+        <a class="botao pequeno secundario" href="/organizador/eventos/{{ l.evento.id() }}/editar">Alterar</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

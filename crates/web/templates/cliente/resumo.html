@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao estreito">
+  <h1>Resumo da compra</h1>
+  <dl class="resumo">
+    <dt>Evento</dt><dd>{{ resumo.evento.nome() }}</dd>
+    <dt>Data</dt><dd>{{ resumo.evento.data()|data }} às {{ resumo.evento.horario()|hora }}</dd>
+    <dt>Local</dt><dd>{{ resumo.evento.local() }}</dd>
+    <dt>Categoria</dt><dd>{{ resumo.ingresso.categoria() }}</dd>
+    <dt>Assento</dt><dd>{% if let Some(a) = resumo.assento %}{{ a.rotulo() }}{% else %}livre (sem assento marcado){% endif %}</dd>
+    <dt>Tipo</dt><dd>{{ resumo.tipo.nome() }}</dd>
+    <dt>Pagamento</dt><dd>{{ resumo.forma_pagamento.nome() }}</dd>
+    <dt>Total</dt><dd class="total">{{ resumo.valor }}</dd>
+  </dl>
+  <form method="post" action="/eventos/{{ resumo.evento.id() }}/confirmar" class="acoes">
+    <input type="hidden" name="categoria" value="{{ resumo.ingresso.id() }}">
+    <input type="hidden" name="tipo" value="{{ resumo.tipo.codigo() }}">
+    <input type="hidden" name="assento" value="{{ assento_codigo }}">
+    <input type="hidden" name="pagamento" value="{{ resumo.forma_pagamento.codigo() }}">
+    <a class="botao secundario" href="/eventos/{{ resumo.evento.id() }}?categoria={{ resumo.ingresso.id() }}">Voltar</a>
+    <button class="botao">Confirmar compra</button>
+  </form>
+</section>
+{% endblock %}

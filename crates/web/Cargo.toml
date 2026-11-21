@@ -1,0 +1,23 @@
+[package]
+name = "web"
+description = "Interface gráfica web (Axum + templates HTML) e ponto de entrada do sistema"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "ingressos"
+path = "src/main.rs"
+
+[dependencies]
+dominio.workspace = true
+aplicacao.workspace = true
+infraestrutura.workspace = true
+chrono.workspace = true
+serde.workspace = true
+tokio.workspace = true
+askama = "0.12"
+axum = "0.8"
+axum-extra = { version = "0.10", features = ["cookie", "form"] }
+dotenvy = "0.15"
+uuid = { version = "1", features = ["v4"] }

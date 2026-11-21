@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao estreito">
+  <h1>Check-in na entrada</h1>
+  <p>Digite o número do ingresso apresentado pelo cliente.</p>
+  {% if let Some(r) = resultado %}
+  <div class="aviso grande {% if r.sucesso %}sucesso{% else %}erro{% endif %}">{% if r.sucesso %}✔{% else %}✖{% endif %} {{ r.texto }}</div>
+  {% endif %}
+  <form method="post" action="/organizador/checkin" class="formulario">
+    <label>Número do ingresso <input name="codigo" value="{{ codigo }}" inputmode="numeric" required autofocus></label>
+    <button class="botao">Registrar entrada</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="/eventos">← Eventos</a>
+<h1>{{ evento.nome() }}</h1>
+<p class="meta">📅 {{ evento.data()|data }} às {{ evento.horario()|hora }} · 📍 {{ evento.local() }} · {{ evento.vagas_restantes() }} vagas</p>
+
+<h2>1. Categoria</h2>
+<div class="abas">
+  {% for c in categorias %}
+  {% if c.esgotado() %}<span class="aba desativada">{{ c.categoria() }} · esgotado</span>
+  {% else %}<a class="aba {% if c.id() == ingresso.id() %}ativa{% endif %}" href="/eventos/{{ evento.id() }}?categoria={{ c.id() }}">{{ c.categoria() }} · {{ c.preco() }}</a>{% endif %}
+  {% endfor %}
+</div>
+
+<form method="post" action="/eventos/{{ evento.id() }}/resumo" class="cartao">
+  <input type="hidden" name="categoria" value="{{ ingresso.id() }}">
+
+  <h2>2. Tipo de ingresso</h2>
+  <div class="opcoes">
+    <label class="opcao"><input type="radio" name="tipo" value="INTEIRA" checked> Inteira <strong>{{ preco_inteira }}</strong></label>
+    <label class="opcao"><input type="radio" name="tipo" value="MEIA"> Meia-entrada (50%) <strong>{{ preco_meia }}</strong></label>
+  </div>
+
+  {% if let Some(m) = mapa %}
+  <h2>3. Escolha o assento — setor {{ m.setor() }}</h2>
+  <p class="legenda"><span class="assento demo"></span> livre <span class="assento ocupado demo">✕</span> vendido <span class="assento demo marcado"></span> sua escolha · {{ m.livres() }} de {{ m.total() }} livres</p>
+  <div class="sala">
+  <div class="palco">PALCO</div>
+  <div class="mapa">
+    <div class="linha cabecalho"><span class="letra"></span>{% for n in m.numeros() %}<span class="numero">{{ n }}</span>{% endfor %}</div>
+    {% for linha in m.linhas() %}
+    <div class="linha"><span class="letra">{{ linha.letra }}</span>
+      {% for c in linha.assentos %}
+      {% if c.ocupado %}<span class="assento ocupado" title="{{ c.rotulo }} — vendido">✕</span>
+      {% else %}<label class="assento" title="Assento {{ c.rotulo }}"><input type="radio" name="assento" value="{{ linha.letra }}-{{ c.numero }}" required><span>{{ c.numero }}</span></label>{% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  </div>
+  {% else %}
+  <h2>3. Lugar</h2>
+  <p>Categoria sem assento marcado (lugar livre). {{ ingresso.disponivel() }} ingressos disponíveis.</p>
+  {% endif %}
+
+  <h2>4. Forma de pagamento</h2>
+  <div class="opcoes">
+    <label class="opcao"><input type="radio" name="pagamento" value="PIX" checked> PIX</label>
+    <label class="opcao"><input type="radio" name="pagamento" value="CREDITO"> Cartão de crédito</label>
+    <label class="opcao"><input type="radio" name="pagamento" value="DEBITO"> Cartão de débito</label>
+  </div>
+  <button class="botao">Continuar para o resumo</button>
+</form>
+{% endblock %}

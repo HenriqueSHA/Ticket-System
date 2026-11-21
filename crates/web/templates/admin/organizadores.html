@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<div class="titulo-acao"><h1>Organizadores</h1><a class="botao" href="/admin/organizadores/novo">+ Novo organizador</a></div>
+{% if organizadores.is_empty() %}<p class="vazio">Nenhum organizador cadastrado.</p>{% else %}
+<table class="tabela">
+  <thead><tr><th>Cód.</th><th>Razão social</th><th>CNPJ</th><th>Contato</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for o in organizadores %}
+  <tr>
+    <td>{{ o.id() }}</td><td>{{ o.razao_social() }}</td><td>{{ o.cnpj() }}</td><td>{{ o.contato() }}</td>
+    <td><span class="selo {{ o.status().codigo() }}">{% if o.esta_ativo() %}Ativo{% else %}Bloqueado{% endif %}</span></td>
+    <td class="acoes-linha">
+      {% if o.esta_ativo() %}
+      <form method="post" action="/admin/organizadores/{{ o.id() }}/bloquear"><button class="botao pequeno secundario">Bloquear</button></form>
+      {% else %}
+      <form method="post" action="/admin/organizadores/{{ o.id() }}/ativar"><button class="botao pequeno">Ativar</button></form>
+      {% endif %}
+      <a class="botao pequeno secundario" href="/admin/organizadores/{{ o.id() }}/editar">Editar</a>
+      <form method="post" action="/admin/organizadores/{{ o.id() }}/remover" onsubmit="return confirm('Remover definitivamente {{ o.razao_social() }}?')">
+        <button class="botao pequeno perigo">Remover</button></form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

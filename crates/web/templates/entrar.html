@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao estreito">
+  <h1>Entrar</h1>
+  {% if let Some(e) = erro %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <form method="post" action="/entrar" class="formulario">
+    <label>E-mail <input type="email" name="email" value="{{ email }}" required autofocus></label>
+    <label>Senha <input type="password" name="senha" required></label>
+    <button class="botao">Entrar</button>
+  </form>
+  <p class="rodape-cartao">Ainda não tem conta? <a href="/cadastro">Criar conta de cliente</a></p>
+</section>
+{% endblock %}

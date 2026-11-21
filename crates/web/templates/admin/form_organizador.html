@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="/admin/organizadores">← Organizadores</a>
+<section class="cartao estreito">
+  <h1>{% if editando %}Editar organizador{% else %}Novo organizador{% endif %}</h1>
+  {% if let Some(e) = erro %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <form method="post" action="{{ acao }}" class="formulario">
+    <label>Razão social <input name="razao_social" value="{{ razao_social }}" required></label>
+    {% if editando %}
+    <label>CNPJ <input value="{{ cnpj }}" disabled><input type="hidden" name="cnpj" value="{{ cnpj }}"></label>
+    {% else %}
+    <label>CNPJ <input name="cnpj" value="{{ cnpj }}" placeholder="00.000.000/0000-00" required></label>
+    {% endif %}
+    <label>Contato (telefone ou responsável) <input name="contato" value="{{ contato }}" required></label>
+    {% if !editando %}
+    <label>E-mail de acesso <input type="email" name="email" value="{{ email }}" required></label>
+    <label>Senha inicial <input type="password" name="senha" minlength="6" required></label>
+    {% endif %}
+    <button class="botao">{% if editando %}Salvar{% else %}Cadastrar{% endif %}</button>
+  </form>
+</section>
+{% endblock %}
