@@ -17,7 +17,7 @@
     <td><span class="selo {{ l.item.venda.status().codigo() }}">{{ l.item.venda.status().nome() }}</span></td>
     <td>{% if l.pode_cancelar %}
       <form method="post" action="/compras/{{ l.item.venda.id() }}/cancelar"
-            onsubmit="return confirm('Cancelar a compra nº {{ l.item.venda.id() }}? Valor a estornar: {{ l.item.venda.valor() }}')">
+            data-confirmar="Cancelar a compra nº {{ l.item.venda.id() }}? Valor a estornar: {{ l.item.venda.valor() }}">
         <button class="botao pequeno perigo">Cancelar</button></form>
     {% endif %}</td>
   </tr>

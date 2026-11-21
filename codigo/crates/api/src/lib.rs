@@ -12,6 +12,7 @@ mod seguranca;
 
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
 use aplicacao::{Aplicacao, Sessao};
 use axum::Json;
@@ -23,27 +24,43 @@ use dominio::Erro;
 
 pub use seguranca::Autenticado;
 
+/// Tempo de validade de um login. Depois disso o usuário precisa entrar de novo.
+pub const DURACAO_SESSAO: Duration = Duration::from_secs(8 * 60 * 60);
+
 /// Estado compartilhado por todas as requisições do back.
 #[derive(Clone)]
 pub struct EstadoApi {
     pub app: Arc<Aplicacao>,
-    tokens: Arc<RwLock<HashMap<String, Sessao>>>,
+    /// token → (sessão, momento do login)
+    tokens: Arc<RwLock<HashMap<String, (Sessao, Instant)>>>,
+    validade: Duration,
 }
 
 impl EstadoApi {
     pub fn novo(app: Aplicacao) -> Self {
-        EstadoApi { app: Arc::new(app), tokens: Arc::default() }
+        Self::com_validade(app, DURACAO_SESSAO)
+    }
+
+    /// Validade do login configurável (usada nos testes para simular a expiração).
+    pub fn com_validade(app: Aplicacao, validade: Duration) -> Self {
+        EstadoApi { app: Arc::new(app), tokens: Arc::default(), validade }
     }
 
     /// Abre uma sessão e devolve o token (código aleatório de 128 bits).
     pub fn emitir_token(&self, sessao: Sessao) -> String {
         let token = uuid::Uuid::new_v4().simple().to_string();
-        self.tokens.write().expect("tokens").insert(token.clone(), sessao);
+        let mut tokens = self.tokens.write().expect("tokens");
+        let validade = self.validade;
+        tokens.retain(|_, (_, inicio)| inicio.elapsed() < validade); // limpa os vencidos
+        tokens.insert(token.clone(), (sessao, Instant::now()));
         token
     }
 
+    /// Sessão do token, se existir e ainda estiver dentro da validade.
     pub fn sessao_do_token(&self, token: &str) -> Option<Sessao> {
-        self.tokens.read().expect("tokens").get(token).cloned()
+        let tokens = self.tokens.read().expect("tokens");
+        let (sessao, inicio) = tokens.get(token)?;
+        (inicio.elapsed() < self.validade).then(|| sessao.clone())
     }
 
     pub fn revogar_token(&self, token: &str) {
@@ -78,9 +95,20 @@ pub fn status_http(erro: &Erro) -> StatusCode {
     }
 }
 
+/// Mensagem mostrada no lugar dos detalhes de uma falha técnica.
+pub const MENSAGEM_FALHA_INTERNA: &str = "erro interno no servidor. Tente novamente em instantes";
+
 impl IntoResponse for FalhaApi {
     fn into_response(self) -> Response {
-        (status_http(&self.0), Json(self.0)).into_response()
+        let erro = match self.0 {
+            // detalhes técnicos (ex.: texto do PostgreSQL) ficam só no log do servidor
+            Erro::Infraestrutura(detalhe) => {
+                eprintln!("[erro interno] {detalhe}");
+                Erro::Infraestrutura(MENSAGEM_FALHA_INTERNA.to_string())
+            }
+            outro => outro,
+        };
+        (status_http(&erro), Json(erro)).into_response()
     }
 }
 
@@ -91,3 +119,27 @@ pub type RespostaApi<T> = Result<Json<T>, FalhaApi>;
 #[derive(FromRequest)]
 #[from_request(via(axum::Json), rejection(FalhaApi))]
 pub struct Corpo<T>(pub T);
+
+#[cfg(test)]
+mod testes {
+    use super::*;
+
+    /// Detalhes técnicos (ex.: texto do banco) não podem chegar ao usuário.
+    #[tokio::test]
+    async fn falha_tecnica_nao_vaza_detalhes() {
+        let resposta = FalhaApi(Erro::Infraestrutura("senha do banco: segredo123".into())).into_response();
+        assert_eq!(resposta.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        let corpo = axum::body::to_bytes(resposta.into_body(), 10_000).await.unwrap();
+        let texto = String::from_utf8(corpo.to_vec()).unwrap();
+        assert!(!texto.contains("segredo123"), "{texto}");
+        assert!(texto.contains(MENSAGEM_FALHA_INTERNA));
+    }
+
+    #[tokio::test]
+    async fn erros_de_negocio_continuam_com_a_mensagem() {
+        let resposta = FalhaApi(Erro::regra("evento lotado")).into_response();
+        assert_eq!(resposta.status(), StatusCode::CONFLICT);
+        let corpo = axum::body::to_bytes(resposta.into_body(), 10_000).await.unwrap();
+        assert!(String::from_utf8_lossy(&corpo).contains("evento lotado"));
+    }
+}

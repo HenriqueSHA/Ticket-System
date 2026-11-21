@@ -529,3 +529,22 @@ async fn email_unico_entre_perfis_e_cnpj_alfanumerico() {
     assert_eq!(criado.cnpj().to_string(), "12.ABC.345/01DE-35");
     assert!(c.login("produtora@nova.com", "123456").await.organizador_id.is_some());
 }
+
+/// Servidor sem dados de demonstração: só o SuperAdmin informado é criado, e só com banco vazio.
+#[tokio::test]
+async fn superadmin_de_producao() {
+    let repos = RepositoriosMemoria::novo();
+    let app = Aplicacao::nova(Dependencias {
+        usuarios: Arc::new(repos.clone()),
+        organizadores: Arc::new(repos.clone()),
+        eventos: Arc::new(repos.clone()),
+        vendas: Arc::new(repos),
+        hash: Arc::new(HashArgon2),
+        relogio: Arc::new(RelogioFixo::em(agora_teste())),
+    });
+    assert!(dados_exemplo::criar_superadmin_se_vazio(&app, "Admin", "111.444.777-35", "x", "123456").await.is_err());
+    assert!(dados_exemplo::criar_superadmin_se_vazio(&app, "Admin", "111.444.777-35", "chefe@a3.com", "senha-forte").await.unwrap());
+    assert!(!dados_exemplo::criar_superadmin_se_vazio(&app, "Outro", "529.982.247-25", "b@a3.com", "123456").await.unwrap());
+    assert_eq!(app.autenticacao.entrar("chefe@a3.com", "senha-forte").await.unwrap().perfil, Perfil::SuperAdmin);
+    assert!(app.eventos.listar_disponiveis().await.unwrap().is_empty()); // sem eventos de demonstração
+}

@@ -30,6 +30,8 @@ O sistema fica em **http://IP-DO-SERVIDOR:3000** (porta configurável em `PORTA_
 | `PORTA_WEB`         | 3000        | porta pública da aplicação                                  |
 | `PORTA_BANCO`       | 5433        | porta do PostgreSQL, aberta só em 127.0.0.1                 |
 | `COOKIE_SEGURO`     | false       | `true` quando o site estiver atrás de HTTPS (proxy reverso) |
+| `DADOS_DEMONSTRACAO`| true        | banco vazio: `true` cria os dados de demonstração; **em produção use `false`** |
+| `ADMIN_CPF`, `ADMIN_EMAIL`, `ADMIN_SENHA` | — | com `DADOS_DEMONSTRACAO=false`, o SuperAdmin criado no primeiro uso |
 
 Comandos úteis:
 

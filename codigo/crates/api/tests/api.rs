@@ -21,6 +21,10 @@ struct Api {
 }
 
 async fn subir() -> Api {
+    subir_com_validade(api::DURACAO_SESSAO).await
+}
+
+async fn subir_com_validade(validade: std::time::Duration) -> Api {
     let repos = RepositoriosMemoria::novo();
     let hoje = NaiveDate::from_ymd_opt(2026, 11, 21).unwrap().and_hms_opt(12, 0, 0).unwrap();
     let app = Aplicacao::nova(Dependencias {
@@ -34,7 +38,7 @@ async fn subir() -> Api {
     dados_exemplo::popular_se_vazio(&app).await.unwrap();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let base = format!("http://{}", listener.local_addr().unwrap());
-    tokio::spawn(async move { axum::serve(listener, rotas::criar(EstadoApi::novo(app))).await.unwrap() });
+    tokio::spawn(async move { axum::serve(listener, rotas::criar(EstadoApi::com_validade(app, validade))).await.unwrap() });
     Api { base, http: Client::new() }
 }
 
@@ -238,4 +242,14 @@ async fn permissoes_por_perfil() {
         .await;
     // a sessão que já estava aberta também perde o acesso às funções de organizador
     api.falha::<()>(Method::GET, "/api/organizador/eventos", Some(&sol), None, StatusCode::FORBIDDEN).await;
+}
+
+#[tokio::test]
+async fn login_expira() {
+    let api = subir_com_validade(std::time::Duration::from_millis(50)).await;
+    let token = api.entrar("ana@email.com", "ana12345").await;
+    let _: Sessao = api.get("/api/sessao", Some(&token)).await;
+    tokio::time::sleep(std::time::Duration::from_millis(80)).await;
+    let e = api.falha::<()>(Method::GET, "/api/sessao", Some(&token), None, StatusCode::FORBIDDEN).await;
+    assert!(e.mensagem().contains("expirada"));
 }

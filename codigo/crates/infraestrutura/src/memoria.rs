@@ -213,10 +213,12 @@ impl RepositorioEventos for RepositoriosMemoria {
         lista.sort_by_key(|e| (e.data(), e.horario()));
         Ok(lista)
     }
+    /// Como o UPDATE do PostgreSQL: grava dados, capacidade e status, mas o total vendido
+    /// continua o atual (pode ter havido vendas desde que o evento foi lido).
     async fn atualizar(&self, evento: &Evento) -> Resultado<()> {
         let mut t = self.t();
         if let Some(e) = t.evento_mut(evento.id()) {
-            *e = evento.clone();
+            *e = Evento::reconstruir(evento.id(), e.organizador_id(), evento.dados().clone(), e.total_vendido(), evento.status());
         }
         Ok(())
     }
@@ -270,6 +272,9 @@ impl RepositorioEventos for RepositoriosMemoria {
     }
     async fn listar_categorias(&self, evento_id: i64) -> Resultado<Vec<Ingresso>> {
         Ok(self.t().ingressos.iter().filter(|i| i.evento_id() == evento_id).cloned().collect())
+    }
+    async fn listar_categorias_de(&self, eventos: &[i64]) -> Resultado<Vec<Ingresso>> {
+        Ok(self.t().ingressos.iter().filter(|i| eventos.contains(&i.evento_id())).cloned().collect())
     }
     async fn buscar_categoria(&self, ingresso_id: i64) -> Resultado<Option<Ingresso>> {
         Ok(self.t().ingressos.iter().find(|i| i.id() == ingresso_id).cloned())
@@ -400,5 +405,52 @@ impl RepositorioVendas for RepositoriosMemoria {
         }
         itens.sort_by(|a, b| b.data_evento.cmp(&a.data_evento).then(b.venda.id().cmp(&a.venda.id())));
         Ok(itens)
+    }
+}
+
+#[cfg(test)]
+mod testes {
+    use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
+    use dominio::valores::Dinheiro;
+
+    use super::*;
+
+    fn agora() -> NaiveDateTime {
+        NaiveDate::from_ymd_opt(2026, 11, 21).unwrap().and_hms_opt(12, 0, 0).unwrap()
+    }
+
+    /// Mesmo comportamento do UPDATE do PostgreSQL: atualizar o evento com uma cópia lida antes
+    /// de uma venda não pode apagar essa venda do total vendido.
+    #[tokio::test]
+    async fn atualizar_evento_preserva_total_vendido() {
+        let repo = RepositoriosMemoria::novo();
+        let dados = DadosEvento {
+            nome: "Show".into(),
+            descricao: String::new(),
+            local: "Arena".into(),
+            data: NaiveDate::from_ymd_opt(2026, 12, 20).unwrap(),
+            horario: NaiveTime::from_hms_opt(20, 0, 0).unwrap(),
+            capacidade: 10,
+            permite_cancelamento: true,
+        };
+        let mut b = EventoBuilder::novo(dados, agora().date()).unwrap();
+        b.adicionar_categoria(NovaCategoria::sem_assento("Pista", Dinheiro::ZERO, 10).unwrap()).unwrap();
+        let evento = RepositorioEventos::inserir(&repo, 1, &b.construir().unwrap()).await.unwrap();
+        let copia_antiga = evento.clone();
+        let cat = repo.listar_categorias(evento.id()).await.unwrap().remove(0);
+        let nova = NovaVenda {
+            data_compra: agora(),
+            valor: Dinheiro::ZERO,
+            tipo: TipoIngresso::Inteira,
+            forma_pagamento: FormaPagamento::Pix,
+            cliente_id: 1,
+            evento_id: evento.id(),
+            ingresso_id: cat.id(),
+            assento_id: None,
+        };
+        repo.registrar(&nova).await.unwrap();
+
+        RepositorioEventos::atualizar(&repo, &copia_antiga).await.unwrap();
+        assert_eq!(RepositorioEventos::buscar(&repo, evento.id()).await.unwrap().unwrap().total_vendido(), 1);
     }
 }

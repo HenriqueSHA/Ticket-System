@@ -168,3 +168,21 @@ async fn back_fora_do_ar_mostra_mensagem_amigavel() {
     assert_eq!(destino, "/entrar");
     assert!(html.contains("indisponível"), "{html}");
 }
+
+/// Texto digitado pelo usuário nunca vira código na página (proteção contra XSS).
+#[tokio::test]
+async fn nome_malicioso_nao_vira_codigo() {
+    let front = subir().await;
+    let n = navegador();
+    let malicioso = "Produtora x'); alert(1);//<script>alert(2)</script>";
+    let org = [("razao_social", malicioso), ("cnpj", "33.444.555/0001-81"), ("contato", "71"), ("email", "x@x.com"), ("senha", "123456")];
+    let (destino, _) = enviar(&n, &format!("{front}/cadastro/organizador"), &org).await;
+    assert_eq!(destino, "/entrar");
+
+    let admin = navegador();
+    entrar(&admin, &front, "admin@ingressos.com", "admin123").await;
+    let (_, html) = pagina(&admin, &format!("{front}/admin/organizadores")).await;
+    assert!(!html.contains("<script>alert(2)"), "tag de script não pode aparecer crua");
+    assert!(!html.contains("onsubmit"), "nenhum dado dentro de JavaScript inline");
+    assert!(html.contains("&lt;script&gt;alert(2)&lt;/script&gt;"), "o texto aparece escapado");
+}

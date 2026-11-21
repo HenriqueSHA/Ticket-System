@@ -45,6 +45,12 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-ingressos}:${POSTGRES_PASSWORD:-ingressos}@db:5432/${POSTGRES_DB:-ingressos}
       ENDERECO_API: 0.0.0.0:8080
+      # banco vazio: true = dados de demonstração; false = só o SuperAdmin abaixo (produção)
+      DADOS_DEMONSTRACAO: ${DADOS_DEMONSTRACAO:-true}
+      ADMIN_NOME: ${ADMIN_NOME:-Administrador}
+      ADMIN_CPF: ${ADMIN_CPF:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_SENHA: ${ADMIN_SENHA:-}
     expose: ["8080"]            # sem porta publicada: só o front chega aqui
     networks: [frontal, dados]
 

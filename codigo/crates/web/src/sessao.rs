@@ -6,6 +6,7 @@
 
 use std::collections::HashMap;
 use std::sync::RwLock;
+use std::time::{Duration, Instant};
 
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
@@ -53,11 +54,17 @@ impl Aviso {
     }
 }
 
+/// Mesma validade do token no back.
+const DURACAO_SESSAO: Duration = Duration::from_secs(8 * 60 * 60);
+/// Aviso que não foi exibido em 10 minutos é descartado.
+const DURACAO_AVISO: Duration = Duration::from_secs(10 * 60);
+
 /// Guarda as sessões abertas e os avisos pendentes, indexados pelo código do cookie.
+/// As entradas vencidas são descartadas a cada gravação (a memória não cresce sem limite).
 #[derive(Default)]
 pub struct ArmazemSessoes {
-    sessoes: RwLock<HashMap<String, Sessao>>,
-    avisos: RwLock<HashMap<String, Aviso>>,
+    sessoes: RwLock<HashMap<String, (Sessao, Instant)>>,
+    avisos: RwLock<HashMap<String, (Aviso, Instant)>>,
     /// `true` atrás de HTTPS: o navegador só envia o cookie por conexão criptografada.
     cookies_seguros: bool,
 }
@@ -83,12 +90,14 @@ impl ArmazemSessoes {
     /// Guarda a sessão no cache e o token (emitido pelo back) no cookie.
     pub fn abrir(&self, jar: CookieJar, sessao: Sessao) -> CookieJar {
         let token = sessao.token.clone();
-        self.sessoes.write().expect("sessões").insert(token.clone(), sessao);
+        self.lembrar(&sessao);
         jar.add(self.cookie(COOKIE_SESSAO, token))
     }
 
     fn lembrar(&self, sessao: &Sessao) {
-        self.sessoes.write().expect("sessões").insert(sessao.token.clone(), sessao.clone());
+        let mut sessoes = self.sessoes.write().expect("sessões");
+        sessoes.retain(|_, (_, inicio)| inicio.elapsed() < DURACAO_SESSAO);
+        sessoes.insert(sessao.token.clone(), (sessao.clone(), Instant::now()));
     }
 
     pub fn fechar(&self, jar: CookieJar) -> CookieJar {
@@ -99,14 +108,21 @@ impl ArmazemSessoes {
     }
 
     pub fn atual(&self, jar: &CookieJar) -> Option<Sessao> {
-        let codigo = jar.get(COOKIE_SESSAO)?;
-        self.sessoes.read().expect("sessões").get(codigo.value()).cloned()
+        let token = jar.get(COOKIE_SESSAO)?;
+        let sessoes = self.sessoes.read().expect("sessões");
+        let (sessao, inicio) = sessoes.get(token.value())?;
+        (inicio.elapsed() < DURACAO_SESSAO).then(|| sessao.clone())
     }
 
-    /// Guarda um aviso para ser mostrado na próxima página.
+    /// Guarda um aviso para ser mostrado na próxima página (substitui um aviso anterior não lido).
     pub fn avisar(&self, jar: CookieJar, aviso: Aviso) -> CookieJar {
         let codigo = novo_codigo();
-        self.avisos.write().expect("avisos").insert(codigo.clone(), aviso);
+        let mut avisos = self.avisos.write().expect("avisos");
+        avisos.retain(|_, (_, criado)| criado.elapsed() < DURACAO_AVISO);
+        if let Some(anterior) = jar.get(COOKIE_AVISO) {
+            avisos.remove(anterior.value());
+        }
+        avisos.insert(codigo.clone(), (aviso, Instant::now()));
         jar.add(self.cookie(COOKIE_AVISO, codigo))
     }
 
@@ -114,7 +130,7 @@ impl ArmazemSessoes {
     pub fn retirar_aviso(&self, jar: CookieJar) -> (CookieJar, Option<Aviso>) {
         match jar.get(COOKIE_AVISO).map(|c| c.value().to_string()) {
             Some(codigo) => {
-                let aviso = self.avisos.write().expect("avisos").remove(&codigo);
+                let aviso = self.avisos.write().expect("avisos").remove(&codigo).map(|(a, _)| a);
                 (jar.remove(Cookie::build(COOKIE_AVISO).path("/")), aviso)
             }
             None => (jar, None),

@@ -16,7 +16,7 @@
       <form method="post" action="/admin/organizadores/{{ o.id() }}/ativar"><button class="botao pequeno">Ativar</button></form>
       {% endif %}
       <a class="botao pequeno secundario" href="/admin/organizadores/{{ o.id() }}/editar">Editar</a>
-      <form method="post" action="/admin/organizadores/{{ o.id() }}/remover" onsubmit="return confirm('Remover definitivamente {{ o.razao_social() }}?')">
+      <form method="post" action="/admin/organizadores/{{ o.id() }}/remover" data-confirmar="Remover definitivamente {{ o.razao_social() }}?">
         <button class="botao pequeno perigo">Remover</button></form>
     </td>
   </tr>

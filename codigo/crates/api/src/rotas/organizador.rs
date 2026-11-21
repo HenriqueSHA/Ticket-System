@@ -21,12 +21,8 @@ pub async fn eu(State(e): State<EstadoApi>, a: Autenticado) -> RespostaApi<Organ
 }
 
 pub async fn eventos(State(e): State<EstadoApi>, a: Autenticado) -> RespostaApi<Vec<EventoComCategorias>> {
-    let mut lista = Vec::new();
-    for evento in e.app.eventos.listar_do_organizador(&a.sessao).await? {
-        let categorias = e.app.eventos.categorias(evento.id()).await?;
-        lista.push(EventoComCategorias { evento, categorias });
-    }
-    Ok(Json(lista))
+    let lista = e.app.eventos.listar_do_organizador_com_categorias(&a.sessao).await?;
+    Ok(Json(lista.into_iter().map(|(evento, categorias)| EventoComCategorias { evento, categorias }).collect()))
 }
 
 /// Algoritmo 3: valida os dados, depois **cada** categoria (laço) — devolve todas as mensagens

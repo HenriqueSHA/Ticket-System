@@ -41,16 +41,7 @@ async fn main() {
         relogio: Arc::new(RelogioSistema),
     });
 
-    match dados_exemplo::popular_se_vazio(&app).await {
-        Ok(true) => {
-            println!("Banco vazio: dados de demonstração criados. Logins:");
-            for (perfil, email, senha) in dados_exemplo::LOGINS {
-                println!("  {perfil:<12} {email:<26} senha: {senha}");
-            }
-        }
-        Ok(false) => {}
-        Err(e) => eprintln!("Aviso: não foi possível criar os dados de demonstração: {e}"),
-    }
+    preparar_dados_iniciais(&app).await;
 
     let listener = match tokio::net::TcpListener::bind(&endereco).await {
         Ok(l) => l,
@@ -65,6 +56,33 @@ async fn main() {
         eprintln!("✖ Servidor encerrado com erro: {e}");
     }
     println!("API encerrada.");
+}
+
+/// Banco vazio: com `DADOS_DEMONSTRACAO=true` (padrão, desenvolvimento) cria os usuários e eventos
+/// de exemplo; com `false` (produção) cria só o SuperAdmin de `ADMIN_NOME/ADMIN_CPF/ADMIN_EMAIL/ADMIN_SENHA`
+/// — assim o servidor nunca fica com senhas de demonstração conhecidas.
+async fn preparar_dados_iniciais(app: &Aplicacao) {
+    let var = |nome: &str| std::env::var(nome).unwrap_or_default();
+    if !var("DADOS_DEMONSTRACAO").eq_ignore_ascii_case("false") {
+        match dados_exemplo::popular_se_vazio(app).await {
+            Ok(true) => {
+                println!("Banco vazio: dados de demonstração criados (DADOS_DEMONSTRACAO=true). Logins:");
+                for (perfil, email, senha) in dados_exemplo::LOGINS {
+                    println!("  {perfil:<12} {email:<26} senha: {senha}");
+                }
+            }
+            Ok(false) => {}
+            Err(e) => eprintln!("Aviso: não foi possível criar os dados de demonstração: {e}"),
+        }
+        return;
+    }
+    let nome = var("ADMIN_NOME");
+    let nome = if nome.is_empty() { "Administrador".to_string() } else { nome };
+    match dados_exemplo::criar_superadmin_se_vazio(app, &nome, &var("ADMIN_CPF"), &var("ADMIN_EMAIL"), &var("ADMIN_SENHA")).await {
+        Ok(true) => println!("Banco vazio: SuperAdmin {} criado.", var("ADMIN_EMAIL")),
+        Ok(false) => {}
+        Err(e) => eprintln!("✖ Não foi possível criar o SuperAdmin ({e}). Confira ADMIN_CPF, ADMIN_EMAIL e ADMIN_SENHA no .env."),
+    }
 }
 
 /// Ctrl+C ou SIGTERM (enviado pelo Docker ao parar o contêiner).

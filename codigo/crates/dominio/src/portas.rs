@@ -60,6 +60,8 @@ pub trait RepositorioEventos: Send + Sync {
     /// Remove a categoria e seus assentos. Recusa se houver vendas.
     async fn remover_categoria(&self, ingresso_id: i64) -> Resultado<()>;
     async fn listar_categorias(&self, evento_id: i64) -> Resultado<Vec<Ingresso>>;
+    /// Categorias de vários eventos de uma vez (evita uma consulta por evento nas listagens).
+    async fn listar_categorias_de(&self, eventos: &[i64]) -> Resultado<Vec<Ingresso>>;
     async fn buscar_categoria(&self, ingresso_id: i64) -> Resultado<Option<Ingresso>>;
     async fn listar_assentos(&self, ingresso_id: i64) -> Resultado<Vec<Assento>>;
     async fn buscar_assento(&self, ingresso_id: i64, fileira: &str, numero: i32) -> Resultado<Option<Assento>>;

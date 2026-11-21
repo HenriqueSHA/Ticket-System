@@ -165,14 +165,29 @@ impl ServicoEventos {
         self.eventos.listar_do_organizador(org.id()).await
     }
 
-    /// Eventos que o cliente pode comprar (abertos, futuros e com vagas).
+    /// Eventos que o cliente pode comprar (abertos, futuros e com vagas), com as categorias.
     pub async fn listar_disponiveis(&self) -> Resultado<Vec<(Evento, Vec<Ingresso>)>> {
-        let mut lista = Vec::new();
-        for evento in self.eventos.listar_disponiveis(self.relogio.hoje()).await? {
-            let categorias = self.eventos.listar_categorias(evento.id()).await?;
-            lista.push((evento, categorias));
-        }
-        Ok(lista)
+        let eventos = self.eventos.listar_disponiveis(self.relogio.hoje()).await?;
+        self.com_categorias(eventos).await
+    }
+
+    /// Eventos do organizador logado, com as categorias.
+    pub async fn listar_do_organizador_com_categorias(&self, sessao: &Sessao) -> Resultado<Vec<(Evento, Vec<Ingresso>)>> {
+        let eventos = self.listar_do_organizador(sessao).await?;
+        self.com_categorias(eventos).await
+    }
+
+    /// Junta cada evento às suas categorias usando **uma** consulta para todos os eventos.
+    async fn com_categorias(&self, eventos: Vec<Evento>) -> Resultado<Vec<(Evento, Vec<Ingresso>)>> {
+        let ids: Vec<i64> = eventos.iter().map(Evento::id).collect();
+        let todas = self.eventos.listar_categorias_de(&ids).await?;
+        Ok(eventos
+            .into_iter()
+            .map(|e| {
+                let categorias = todas.iter().filter(|c| c.evento_id() == e.id()).cloned().collect();
+                (e, categorias)
+            })
+            .collect())
     }
 
     pub async fn categorias(&self, evento_id: i64) -> Resultado<Vec<Ingresso>> {

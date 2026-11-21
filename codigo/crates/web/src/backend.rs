@@ -34,10 +34,10 @@ impl Http {
         if let Some(c) = corpo {
             req = req.json(c);
         }
-        let resposta = req
-            .send()
-            .await
-            .map_err(|e| Erro::Infraestrutura(format!("serviço de dados indisponível no momento ({e})")))?;
+        let resposta = req.send().await.map_err(|e| {
+            eprintln!("[back indisponível] {e}");
+            Erro::Infraestrutura("serviço indisponível no momento. Tente novamente em instantes".to_string())
+        })?;
         let status = resposta.status();
         let texto = resposta.text().await.map_err(|e| Erro::Infraestrutura(e.to_string()))?;
         if status.is_success() {

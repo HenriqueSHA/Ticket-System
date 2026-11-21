@@ -25,6 +25,14 @@
     {% endif %}
     {% block conteudo %}{% endblock %}
   </main>
+  <script>
+    // Pede confirmação nos formulários marcados com data-confirmar. O texto vem de um atributo
+    // (lido como texto puro) e nunca é interpretado como código: protege contra XSS.
+    document.addEventListener('submit', (e) => {
+      const msg = e.target.dataset && e.target.dataset.confirmar;
+      if (msg && !confirm(msg)) e.preventDefault();
+    });
+  </script>
   <footer>Sistema de Cadastro e Venda de Ingressos · A3 Algoritmos e Programação · UNIFACS 2026.2</footer>
 </body>
 </html>

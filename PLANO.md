@@ -55,8 +55,10 @@ navegador ──► front (web, :3000) ──HTTP/JSON──► back (api, :8080
 - **Checklist:** `docker compose ps` mostra 3 serviços healthy ✔ · front não acessa o banco (nem resolve o nome `db`) ✔ · back sem porta pública ✔ · 46 testes passam ✔ · commit/push ✔
 
 ## Fase 3 — Qualidade, testes e CI/CD
-- [ ] 3.1 Revisão do código (code review): erros, duplicações, otimizações (ex.: N+1 consultas na lista de eventos, índices no banco)
-- [ ] 3.2 Corrigir o que a revisão achar + testes que provem cada correção
+- [x] 3.1 Revisão do código (code review): erros, duplicações, otimizações (ex.: N+1 consultas na lista de eventos, índices no banco)
+- [x] 3.2 Corrigir o que a revisão achar + testes que provem cada correção
+  (XSS nos `confirm()`, senhas de demonstração em produção, detalhe técnico vazando para a tela,
+  sessões/avisos sem validade, memória sobrescrevendo total vendido, N+1 consultas, índices)
 - [ ] 3.3 Testes que faltam: front (renderização/rotas com back falso), API, PostgreSQL
 - [ ] 3.4 `cargo fmt` em tudo + configuração (`rustfmt.toml`)
 - [ ] 3.5 GitHub Actions — **CI** em todo push/PR: fmt, clippy (sem avisos), testes, testes no PostgreSQL (serviço do Actions), build das imagens Docker

@@ -35,7 +35,7 @@
       <a class="botao pequeno secundario" href="/organizador/eventos/{{ evento.id() }}/categorias/{{ c.id() }}">Editar</a>
       {% if c.vendidos() == 0 %}
       <form method="post" action="/organizador/eventos/{{ evento.id() }}/categorias/{{ c.id() }}/remover"
-            onsubmit="return confirm('Remover a categoria {{ c.categoria() }}?')"><button class="botao pequeno perigo">Remover</button></form>
+            data-confirmar="Remover a categoria {{ c.categoria() }}?"><button class="botao pequeno perigo">Remover</button></form>
       {% endif %}
       {% endif %}
     </td>
@@ -85,7 +85,7 @@
      Para parar de vender, use <a href="/organizador/eventos/{{ evento.id() }}/editar">Alterar dados → Vendas abertas</a>.</p>
   {% endif %}
   <form method="post" action="/organizador/eventos/{{ evento.id() }}/excluir"
-        onsubmit="return confirm('Excluir definitivamente o evento {{ evento.nome() }}?')">
+        data-confirmar="Excluir definitivamente o evento {{ evento.nome() }}?">
     <button class="botao perigo" {% if evento.total_vendido() > 0 %}disabled{% endif %}>Excluir evento</button>
   </form>
 </section>

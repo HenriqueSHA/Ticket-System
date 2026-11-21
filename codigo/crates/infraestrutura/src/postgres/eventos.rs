@@ -277,6 +277,12 @@ impl RepositorioEventos for RepositorioEventosPg {
         linhas.iter().map(ler_ingresso).collect()
     }
 
+    async fn listar_categorias_de(&self, eventos: &[i64]) -> Resultado<Vec<Ingresso>> {
+        let sql = format!("SELECT {COLUNAS_INGRESSO} FROM ingressos WHERE evento_id = ANY($1) ORDER BY evento_id, id");
+        let linhas = sqlx::query(&sql).bind(eventos).fetch_all(&self.pool).await.map_err(erro_bd)?;
+        linhas.iter().map(ler_ingresso).collect()
+    }
+
     async fn buscar_categoria(&self, ingresso_id: i64) -> Resultado<Option<Ingresso>> {
         let sql = format!("SELECT {COLUNAS_INGRESSO} FROM ingressos WHERE id = $1");
         let linha = sqlx::query(&sql).bind(ingresso_id).fetch_optional(&self.pool).await.map_err(erro_bd)?;

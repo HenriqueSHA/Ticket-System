@@ -27,6 +27,17 @@ fn hora(h: u32) -> NaiveTime {
     NaiveTime::from_hms_opt(h, 0, 0).expect("horário fixo válido")
 }
 
+/// Em produção (sem dados de demonstração): cria só o SuperAdmin informado, se o banco estiver
+/// vazio. Devolve `true` se criou.
+pub async fn criar_superadmin_se_vazio(app: &Aplicacao, nome: &str, cpf: &str, email: &str, senha: &str) -> Resultado<bool> {
+    if app.usuarios.contar().await? > 0 {
+        return Ok(false);
+    }
+    let admin = app.fabrica.criar_superadmin(nome, cpf, email, senha)?;
+    app.usuarios.inserir(&admin).await?;
+    Ok(true)
+}
+
 /// Popula o banco se não houver nenhum usuário. Devolve `true` se populou.
 pub async fn popular_se_vazio(app: &Aplicacao) -> Resultado<bool> {
     if app.usuarios.contar().await? > 0 {
