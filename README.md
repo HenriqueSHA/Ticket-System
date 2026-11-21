@@ -5,16 +5,54 @@ Aplicação web em **Rust** com banco de dados **PostgreSQL**.
 
 ## Como executar
 
-Pré-requisitos: [Rust](https://rustup.rs) e [Docker](https://docs.docker.com/get-docker/).
+### Em um servidor (tudo em contêiner)
+
+Pré-requisito: Docker com o plugin Compose.
 
 ```bash
-cd codigo
-docker compose up -d     # sobe o PostgreSQL (porta 5433)
-cargo run                # compila e inicia o sistema
+git clone https://github.com/HenriqueSHA/Ticket-System.git
+cd Ticket-System
+cp .env.example .env          # troque POSTGRES_PASSWORD!
+docker compose up -d --build  # compila a imagem e sobe app + PostgreSQL
 ```
 
-Abra **http://127.0.0.1:3000** no navegador. Na primeira execução as tabelas são criadas
-(`migrations/`) e o banco recebe dados de demonstração:
+O sistema fica em **http://IP-DO-SERVIDOR:3000** (porta configurável em `PORTA_WEB`).
+
+| Variável (.env)     | Padrão      | Para que serve                                              |
+|---------------------|-------------|-------------------------------------------------------------|
+| `POSTGRES_USER`     | ingressos   | usuário do banco                                            |
+| `POSTGRES_PASSWORD` | ingressos   | senha do banco — **troque em produção**                     |
+| `POSTGRES_DB`       | ingressos   | nome do banco                                               |
+| `PORTA_WEB`         | 3000        | porta pública da aplicação                                  |
+| `PORTA_BANCO`       | 5433        | porta do PostgreSQL, aberta só em 127.0.0.1                 |
+| `COOKIE_SEGURO`     | false       | `true` quando o site estiver atrás de HTTPS (proxy reverso) |
+
+Comandos úteis:
+
+```bash
+docker compose ps                 # situação (os dois serviços têm healthcheck)
+docker compose logs -f app        # registros da aplicação
+docker compose up -d --build app  # atualizar depois de um git pull
+docker compose down               # parar (os dados ficam no volume)
+docker compose down -v            # parar e APAGAR o banco
+```
+
+A imagem é construída em três estágios (`Dockerfile`): as dependências ficam em cache, o
+executável é compilado em modo *release* e a imagem final contém só o binário (≈120 MB),
+rodando com um usuário sem privilégios. As tabelas são criadas automaticamente na primeira
+execução. `GET /saude` responde `ok` (usado pelo healthcheck).
+
+### Desenvolvimento (na sua máquina)
+
+Pré-requisitos: [Rust](https://rustup.rs) e Docker.
+
+```bash
+cp .env.example .env
+docker compose up -d db   # só o PostgreSQL (porta 5433)
+cargo run                 # compila e inicia o sistema
+```
+
+Abra **http://127.0.0.1:3000**. Na primeira execução o banco recebe dados de demonstração:
 
 | Perfil      | E-mail                   | Senha     |
 |-------------|--------------------------|-----------|
@@ -24,8 +62,7 @@ Abra **http://127.0.0.1:3000** no navegador. Na primeira execução as tabelas s
 | Cliente     | ana@email.com            | ana12345  |
 | Cliente     | bruno@email.com          | bruno123  |
 
-Para zerar o banco: `docker compose down -v && docker compose up -d`.
-Configurações (endereço do banco e porta da web) ficam no arquivo `.env` (modelo em `.env.example`).
+Para zerar o banco: `docker compose down -v && docker compose up -d db`.
 
 ## Testes
 
@@ -42,8 +79,9 @@ organizador bloqueado, controle de acesso, cancelamento proibido).
 ## Arquitetura (camadas)
 
 ```
-codigo/
-├── docker-compose.yml        PostgreSQL 16
+Ticket-System/
+├── Dockerfile                imagem da aplicação (build multi-estágio)
+├── docker-compose.yml        aplicação + PostgreSQL 16
 ├── migrations/               SQL das tabelas (executado automaticamente)
 └── crates/
     ├── dominio/              regras de negócio puras — não depende de nada

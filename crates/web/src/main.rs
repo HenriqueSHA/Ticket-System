@@ -19,6 +19,7 @@ async fn main() {
     let _ = dotenvy::dotenv(); // lê o arquivo .env, se existir
     let url = std::env::var("DATABASE_URL").unwrap_or_else(|_| BANCO_PADRAO.to_string());
     let endereco = std::env::var("ENDERECO").unwrap_or_else(|_| ENDERECO_PADRAO.to_string());
+    let cookies_seguros = std::env::var("COOKIE_SEGURO").is_ok_and(|v| v.eq_ignore_ascii_case("true"));
 
     let banco = match BancoPostgres::conectar(&url).await {
         Ok(b) => b,
@@ -61,7 +62,30 @@ async fn main() {
         }
     };
     println!("\n  Sistema de Ingressos no ar:  http://{endereco}\n  (Ctrl+C para encerrar)");
-    if let Err(e) = axum::serve(listener, rotas::criar(Estado::novo(app))).await {
+    let servidor = axum::serve(listener, rotas::criar(Estado::novo(app, cookies_seguros)))
+        .with_graceful_shutdown(sinal_de_encerramento());
+    if let Err(e) = servidor.await {
         eprintln!("✖ Servidor encerrado com erro: {e}");
+    }
+    println!("Sistema encerrado.");
+}
+
+/// Espera Ctrl+C ou o SIGTERM enviado pelo Docker (`docker compose down`) para encerrar
+/// terminando as requisições em andamento.
+async fn sinal_de_encerramento() {
+    let ctrl_c = async {
+        let _ = tokio::signal::ctrl_c().await;
+    };
+    #[cfg(unix)]
+    let termino = async {
+        if let Ok(mut sinal) = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            sinal.recv().await;
+        }
+    };
+    #[cfg(not(unix))]
+    let termino = std::future::pending::<()>();
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = termino => {},
     }
 }

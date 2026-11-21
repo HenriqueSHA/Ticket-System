@@ -24,7 +24,7 @@ pub struct Estado {
 }
 
 impl Estado {
-    pub fn novo(app: Aplicacao) -> Self {
-        Estado { app: Arc::new(app), sessoes: Arc::new(ArmazemSessoes::default()) }
+    pub fn novo(app: Aplicacao, cookies_seguros: bool) -> Self {
+        Estado { app: Arc::new(app), sessoes: Arc::new(ArmazemSessoes::novo(cookies_seguros)) }
     }
 }

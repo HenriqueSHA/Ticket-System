@@ -36,21 +36,32 @@ impl Aviso {
 pub struct ArmazemSessoes {
     sessoes: RwLock<HashMap<String, Sessao>>,
     avisos: RwLock<HashMap<String, Aviso>>,
+    /// `true` atrás de HTTPS: o navegador só envia o cookie por conexão criptografada.
+    cookies_seguros: bool,
 }
 
 fn novo_codigo() -> String {
     uuid::Uuid::new_v4().simple().to_string()
 }
 
-fn cookie(nome: &'static str, valor: String) -> Cookie<'static> {
-    Cookie::build((nome, valor)).path("/").http_only(true).same_site(SameSite::Lax).build()
-}
-
 impl ArmazemSessoes {
+    pub fn novo(cookies_seguros: bool) -> Self {
+        ArmazemSessoes { cookies_seguros, ..Default::default() }
+    }
+
+    fn cookie(&self, nome: &'static str, valor: String) -> Cookie<'static> {
+        Cookie::build((nome, valor))
+            .path("/")
+            .http_only(true)
+            .secure(self.cookies_seguros)
+            .same_site(SameSite::Lax)
+            .build()
+    }
+
     pub fn abrir(&self, jar: CookieJar, sessao: Sessao) -> CookieJar {
         let codigo = novo_codigo();
         self.sessoes.write().expect("sessões").insert(codigo.clone(), sessao);
-        jar.add(cookie(COOKIE_SESSAO, codigo))
+        jar.add(self.cookie(COOKIE_SESSAO, codigo))
     }
 
     pub fn fechar(&self, jar: CookieJar) -> CookieJar {
@@ -69,7 +80,7 @@ impl ArmazemSessoes {
     pub fn avisar(&self, jar: CookieJar, aviso: Aviso) -> CookieJar {
         let codigo = novo_codigo();
         self.avisos.write().expect("avisos").insert(codigo.clone(), aviso);
-        jar.add(cookie(COOKIE_AVISO, codigo))
+        jar.add(self.cookie(COOKIE_AVISO, codigo))
     }
 
     /// Retira o aviso pendente (ele só aparece uma vez).

@@ -22,6 +22,7 @@ pub fn criar(estado: Estado) -> Router {
     Router::new()
         .route("/", get(publico::inicio))
         .route("/estilo.css", get(estilo))
+        .route("/saude", get(|| async { "ok" }))
         .route("/entrar", get(publico::form_entrar).post(publico::entrar))
         .route("/cadastro", get(publico::form_cadastro).post(publico::cadastrar))
         .route("/sair", post(publico::sair))

@@ -15,7 +15,7 @@ infraestrutura = { path = "crates/infraestrutura" }
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
 serde = { version = "1", features = ["derive"] }
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "signal"] }
 
 # Argon2 é lento sem otimização; otimiza só ele no modo de desenvolvimento (testes mais rápidos).
 [profile.dev.package.argon2]

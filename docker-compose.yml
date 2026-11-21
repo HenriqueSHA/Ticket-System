@@ -1,22 +1,45 @@
-# Banco de dados PostgreSQL do sistema de ingressos.
-# Subir:  docker compose up -d      Parar:  docker compose down
+# Sistema de Ingressos — aplicação + PostgreSQL.
+#
+# Tudo em contêiner (servidor):   docker compose up -d --build
+# Só o banco (desenvolvimento):   docker compose up -d db   e depois   cargo run
+# Parar:                          docker compose down        (-v apaga os dados)
+#
+# As variáveis vêm do arquivo .env (modelo em .env.example). Em produção, troque a senha!
+
 services:
-  postgres:
+  db:
     image: postgres:16-alpine
     container_name: ingressos-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ingressos
-      POSTGRES_PASSWORD: ingressos
-      POSTGRES_DB: ingressos
+      POSTGRES_USER: ${POSTGRES_USER:-ingressos}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ingressos}
+      POSTGRES_DB: ${POSTGRES_DB:-ingressos}
     ports:
-      - "127.0.0.1:5433:5432"
+      # só acessível pela própria máquina (usado pelo `cargo run` no desenvolvimento)
+      - "127.0.0.1:${PORTA_BANCO:-5433}:5432"
     volumes:
       - dados-postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ingressos"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ingressos} -d ${POSTGRES_DB:-ingressos}"]
       interval: 2s
       timeout: 3s
       retries: 15
+
+  app:
+    build: .
+    image: ticket-system:latest
+    container_name: ingressos-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-ingressos}:${POSTGRES_PASSWORD:-ingressos}@db:5432/${POSTGRES_DB:-ingressos}
+      ENDERECO: 0.0.0.0:3000
+      COOKIE_SEGURO: ${COOKIE_SEGURO:-false}
+    ports:
+      - "${PORTA_WEB:-3000}:3000"
 
 volumes:
   dados-postgres:
