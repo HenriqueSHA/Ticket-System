@@ -14,11 +14,11 @@ mod venda;
 
 pub use assento::{Assento, CelulaMapa, LinhaMapa, MapaAssentos, Situacao, indice_fileira, letra_fileira};
 pub use evento::{DadosEvento, Evento, EventoBuilder, NovoEvento, StatusEvento};
-pub use ingresso::{Ingresso, MAX_ASSENTOS_POR_FILEIRA, MAX_FILEIRAS, NovaCategoria, Setor};
+pub use ingresso::{Ingresso, MAX_ASSENTOS_POR_FILEIRA, MAX_FILEIRAS, NovaCategoria, Setor, total_disponivel};
 pub use organizador::{NovoOrganizador, Organizador, StatusOrganizador};
 pub use relatorio::RelatorioEvento;
 pub use usuario::{Perfil, Usuario};
-pub use venda::{FormaPagamento, ItemHistorico, NovaVenda, StatusVenda, TipoIngresso, Venda};
+pub use venda::{FormaPagamento, ItemHistorico, NovaVenda, StatusVenda, TipoIngresso, Venda, VendaDetalhada};
 
 /// Abstração comum aos enums gravados no banco como texto (ex.: `StatusVenda::Confirmada` ↔ "CONFIRMADA").
 ///

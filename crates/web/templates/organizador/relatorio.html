@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block conteudo %}
-<a class="voltar" href="/organizador/eventos">← Meus eventos</a>
+<a class="voltar" href="/organizador/eventos/{{ relatorio.evento.id() }}">← Gerenciar evento</a>
 <h1>Relatório — {{ relatorio.evento.nome() }}</h1>
 <p class="meta">📅 {{ relatorio.evento.data()|data }} às {{ relatorio.evento.horario()|hora }} · 📍 {{ relatorio.evento.local() }}</p>
 <div class="indicadores">
@@ -31,4 +31,28 @@
 </div>
 </div>
 {% endfor %}
+
+<h2>Vendas <small>({{ vendas.len() }})</small></h2>
+{% if vendas.is_empty() %}<p class="vazio">Nenhuma venda ainda.</p>{% else %}
+<table class="tabela">
+  <thead><tr><th>Ingresso</th><th>Cliente</th><th>Categoria</th><th>Assento</th><th>Tipo</th><th class="num">Valor</th><th>Compra</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for v in vendas %}
+  <tr>
+    <td>{{ "{:06}"|format(v.venda.id()) }}</td>
+    <td>{{ v.cliente }}</td>
+    <td>{{ v.categoria }}</td>
+    <td>{% if let Some(a) = v.assento %}{{ a }}{% else %}—{% endif %}</td>
+    <td>{{ v.venda.tipo().nome() }}</td>
+    <td class="num">{{ v.venda.valor() }}</td>
+    <td>{{ v.venda.data_compra()|data_hora }}</td>
+    <td><span class="selo {{ v.venda.status().codigo() }}">{{ v.venda.status().nome() }}</span></td>
+    <td>{% if v.venda.status().codigo() == "CONFIRMADA" %}
+      <form method="post" action="/organizador/eventos/{{ relatorio.evento.id() }}/vendas/{{ v.venda.id() }}/checkin">
+        <button class="botao pequeno">Registrar entrada</button></form>{% endif %}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
 {% endblock %}

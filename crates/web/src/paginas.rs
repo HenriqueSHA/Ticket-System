@@ -114,6 +114,7 @@ pub struct PaginaErro {
 pub struct CartaoEvento {
     pub evento: Evento,
     pub categorias: Vec<Ingresso>,
+    pub disponiveis: i32,
 }
 
 #[derive(Template)]
@@ -129,6 +130,7 @@ pub struct PaginaComprar {
     pub layout: Layout,
     pub evento: Evento,
     pub categorias: Vec<Ingresso>,
+    pub disponiveis: i32,
     pub ingresso: Ingresso,
     pub mapa: Option<MapaAssentos>,
     pub preco_inteira: Dinheiro,
@@ -169,6 +171,7 @@ pub struct PaginaMeusIngressos {
 pub struct LinhaEventoOrganizador {
     pub evento: Evento,
     pub realizado: bool,
+    pub disponiveis: i32,
 }
 
 #[derive(Template)]
@@ -210,6 +213,37 @@ pub struct PaginaFormEvento {
     pub campos: CamposEvento,
     pub categorias: Vec<LinhaCategoria>,
     pub erros: Vec<String>,
+    /// Na alteração: a capacidade não pode ficar abaixo da soma das categorias.
+    pub capacidade_minima: i32,
+    pub voltar: String,
+}
+
+#[derive(Template)]
+#[template(path = "organizador/gerenciar.html")]
+pub struct PaginaGerenciarEvento {
+    pub layout: Layout,
+    pub evento: Evento,
+    pub categorias: Vec<Ingresso>,
+    /// Capacidade ainda não distribuída entre categorias.
+    pub vagas_para_categorias: i32,
+    /// Ingressos que ainda podem ser vendidos (soma das categorias).
+    pub disponiveis: i32,
+    pub realizado: bool,
+    /// Valores do formulário "Adicionar categoria" (devolvidos em caso de erro).
+    pub nova: LinhaCategoria,
+    pub erro_categoria: Option<String>,
+}
+
+#[derive(Template)]
+#[template(path = "organizador/form_categoria.html")]
+pub struct PaginaFormCategoria {
+    pub layout: Layout,
+    pub evento: Evento,
+    pub ingresso: Ingresso,
+    pub nome: String,
+    pub preco: String,
+    pub quantidade: String,
+    pub erro: Option<String>,
 }
 
 #[derive(Template)]
@@ -218,6 +252,7 @@ pub struct PaginaRelatorio {
     pub layout: Layout,
     pub relatorio: RelatorioEvento,
     pub mapas: Vec<MapaAssentos>,
+    pub vendas: Vec<VendaDetalhada>,
 }
 
 #[derive(Template)]

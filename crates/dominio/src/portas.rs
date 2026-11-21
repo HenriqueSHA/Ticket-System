@@ -43,10 +43,22 @@ pub trait RepositorioEventos: Send + Sync {
     /// Grava evento, categorias e a matriz de assentos em uma única transação.
     async fn inserir(&self, organizador_id: i64, novo: &NovoEvento) -> Resultado<Evento>;
     async fn buscar(&self, id: i64) -> Resultado<Option<Evento>>;
-    /// Abertos, com data posterior a `hoje` e com vagas.
+    /// Abertos, com data posterior a `hoje`, com vagas e com alguma categoria não esgotada.
     async fn listar_disponiveis(&self, hoje: NaiveDate) -> Resultado<Vec<Evento>>;
     async fn listar_do_organizador(&self, organizador_id: i64) -> Resultado<Vec<Evento>>;
+    /// Grava dados, capacidade e status do evento.
     async fn atualizar(&self, evento: &Evento) -> Resultado<()>;
+    /// `true` se o evento tem qualquer venda (inclusive cancelada — é histórico).
+    async fn possui_vendas(&self, evento_id: i64) -> Resultado<bool>;
+    /// Exclui evento, categorias e assentos. Recusa se houver vendas.
+    async fn remover(&self, evento_id: i64) -> Resultado<()>;
+    /// Nova categoria em um evento já cadastrado (gera os assentos, se houver).
+    async fn adicionar_categoria(&self, evento_id: i64, categoria: &NovaCategoria) -> Resultado<Ingresso>;
+    /// Grava nome, preço e quantidade. A quantidade disponível é recalculada no banco a partir
+    /// do que já foi vendido naquele instante; recusa se a nova quantidade ficar abaixo dele.
+    async fn atualizar_categoria(&self, ingresso: &Ingresso) -> Resultado<()>;
+    /// Remove a categoria e seus assentos. Recusa se houver vendas.
+    async fn remover_categoria(&self, ingresso_id: i64) -> Resultado<()>;
     async fn listar_categorias(&self, evento_id: i64) -> Resultado<Vec<Ingresso>>;
     async fn buscar_categoria(&self, ingresso_id: i64) -> Resultado<Option<Ingresso>>;
     async fn listar_assentos(&self, ingresso_id: i64) -> Resultado<Vec<Assento>>;
@@ -65,6 +77,8 @@ pub trait RepositorioVendas: Send + Sync {
     async fn marcar_utilizada(&self, venda_id: i64) -> Resultado<bool>;
     async fn buscar(&self, id: i64) -> Resultado<Option<Venda>>;
     async fn listar_do_evento(&self, evento_id: i64) -> Resultado<Vec<Venda>>;
+    /// Vendas do evento com nome do cliente, categoria e assento (mais recentes primeiro).
+    async fn listar_detalhadas_do_evento(&self, evento_id: i64) -> Resultado<Vec<VendaDetalhada>>;
     async fn historico_do_cliente(&self, cliente_id: i64) -> Resultado<Vec<ItemHistorico>>;
 }
 

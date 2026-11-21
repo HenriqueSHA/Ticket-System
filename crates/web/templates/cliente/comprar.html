@@ -2,7 +2,7 @@
 {% block conteudo %}
 <a class="voltar" href="/eventos">← Eventos</a>
 <h1>{{ evento.nome() }}</h1>
-<p class="meta">📅 {{ evento.data()|data }} às {{ evento.horario()|hora }} · 📍 {{ evento.local() }} · {{ evento.vagas_restantes() }} vagas</p>
+<p class="meta">📅 {{ evento.data()|data }} às {{ evento.horario()|hora }} · 📍 {{ evento.local() }} · {{ disponiveis }} ingressos disponíveis</p>
 
 <h2>1. Categoria</h2>
 <div class="abas">

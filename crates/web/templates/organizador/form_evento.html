@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block conteudo %}
-<a class="voltar" href="/organizador/eventos">← Meus eventos</a>
+<a class="voltar" href="{{ voltar }}">← Voltar</a>
 <h1>{% if editando %}Alterar evento{% else %}Novo evento{% endif %}</h1>
 {% for e in erros %}<div class="aviso erro">{{ e }}</div>{% endfor %}
 <form method="post" action="{{ acao }}" class="cartao formulario">
@@ -14,12 +14,12 @@
     <label>Data <input type="date" name="data" value="{{ campos.data }}" required><small>Deve ser futura.</small></label>
     <label>Horário <input type="time" name="horario" value="{{ campos.horario }}" required></label>
     <label>Capacidade total
-      <input type="number" name="capacidade" min="1" value="{{ campos.capacidade }}" {% if editando %}disabled{% else %}required{% endif %}>
-      {% if editando %}<small>Não pode ser alterada após o cadastro.</small>{% endif %}</label>
+      <input type="number" name="capacidade" min="{{ capacidade_minima }}" value="{{ campos.capacidade }}" required>
+      {% if editando %}<small>Mínimo {{ capacidade_minima }} (soma das categorias). As categorias são ajustadas em "Gerenciar".</small>{% endif %}</label>
   </div>
   <label class="marcar"><input type="checkbox" name="permite_cancelamento" {% if campos.permite_cancelamento %}checked{% endif %}> Permite cancelamento pelo cliente</label>
   {% if editando %}
-  <label class="marcar"><input type="checkbox" name="vendas_abertas" {% if campos.vendas_abertas %}checked{% endif %}> Vendas abertas</label>
+  <label class="marcar"><input type="checkbox" name="vendas_abertas" {% if campos.vendas_abertas %}checked{% endif %}> Vendas abertas (desmarque para encerrar as vendas)</label>
   {% else %}
   <h2>Categorias de ingresso</h2>
   <p class="dica">Com assento marcado, a quantidade é fileiras × assentos por fileira (máx. 26 fileiras e 30 assentos por fileira). A soma das categorias não pode passar da capacidade.</p>

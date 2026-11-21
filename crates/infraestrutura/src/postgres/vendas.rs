@@ -149,6 +149,37 @@ impl RepositorioVendas for RepositorioVendasPg {
         linhas.iter().map(ler_venda).collect()
     }
 
+    async fn listar_detalhadas_do_evento(&self, evento_id: i64) -> Resultado<Vec<VendaDetalhada>> {
+        let linhas = sqlx::query(
+            "SELECT v.id, v.data_compra, v.valor_centavos, v.tipo, v.forma_pagamento, v.status,
+                    v.cliente_id, i.evento_id, v.ingresso_id, v.assento_id,
+                    u.nome AS cliente, i.categoria, a.fileira, a.numero
+             FROM vendas v
+             JOIN ingressos i ON i.id = v.ingresso_id
+             JOIN usuarios u ON u.id = v.cliente_id
+             LEFT JOIN assentos a ON a.id = v.assento_id
+             WHERE i.evento_id = $1
+             ORDER BY v.id DESC",
+        )
+        .bind(evento_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(erro_bd)?;
+        linhas
+            .iter()
+            .map(|r| {
+                let fileira: Option<String> = r.try_get("fileira").map_err(erro_bd)?;
+                let numero: Option<i32> = r.try_get("numero").map_err(erro_bd)?;
+                Ok(VendaDetalhada {
+                    venda: ler_venda(r)?,
+                    cliente: r.try_get("cliente").map_err(erro_bd)?,
+                    categoria: r.try_get("categoria").map_err(erro_bd)?,
+                    assento: fileira.zip(numero).map(|(f, n)| format!("{f}{n}")),
+                })
+            })
+            .collect()
+    }
+
     async fn historico_do_cliente(&self, cliente_id: i64) -> Resultado<Vec<ItemHistorico>> {
         let linhas = sqlx::query(
             "SELECT v.id, v.data_compra, v.valor_centavos, v.tipo, v.forma_pagamento, v.status,

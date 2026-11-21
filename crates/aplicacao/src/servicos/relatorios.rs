@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use dominio::entidades::{Perfil, RelatorioEvento, Venda};
+use dominio::entidades::{Perfil, RelatorioEvento, Venda, VendaDetalhada};
 use dominio::portas::{RepositorioEventos, RepositorioOrganizadores, RepositorioVendas};
 use dominio::{Erro, Resultado};
 
@@ -39,6 +39,15 @@ impl ServicoRelatorios {
         let vendas = self.vendas.listar_do_evento(evento.id()).await?;
         let categorias = self.eventos.listar_categorias(evento.id()).await?;
         Ok(RelatorioEvento::calcular(evento, &vendas, categorias))
+    }
+
+    /// Lista de vendas do evento (cliente, categoria, assento, situação).
+    pub async fn vendas_do_evento(&self, sessao: &Sessao, evento_id: i64) -> Resultado<Vec<VendaDetalhada>> {
+        let org_id = self.organizador_ativo_id(sessao).await?;
+        match self.eventos.buscar(evento_id).await? {
+            Some(e) if e.pertence_a(org_id) => self.vendas.listar_detalhadas_do_evento(evento_id).await,
+            _ => Err(Erro::nao_encontrado("evento não encontrado entre os seus eventos")),
+        }
     }
 
     /// Check-in: marca o ingresso como utilizado na entrada do evento.

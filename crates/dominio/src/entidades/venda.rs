@@ -234,3 +234,12 @@ pub struct ItemHistorico {
     pub assento: Option<String>,
     pub permite_cancelamento: bool,
 }
+
+/// Venda de um evento com o nome do cliente (lista de vendas do organizador).
+#[derive(Debug, Clone)]
+pub struct VendaDetalhada {
+    pub venda: Venda,
+    pub cliente: String,
+    pub categoria: String,
+    pub assento: Option<String>,
+}

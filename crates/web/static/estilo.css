@@ -55,6 +55,12 @@ input:disabled { background: #f1f2f5; color: var(--suave); }
 .botao.secundario { background: #eceaf9; color: var(--primaria); }
 .botao.perigo { background: var(--erro-fundo); color: var(--erro); }
 .botao.pequeno { padding: 5px 10px; font-size: .85rem; }
+.botao:disabled { opacity: .45; cursor: not-allowed; }
+.zona-perigo { margin-top: 24px; border-color: #f4c3bd; }
+.zona-perigo h2 { margin-top: 0; color: var(--erro); }
+.vazio-cartao { text-align: center; padding: 32px; }
+#nova-categoria { margin-top: 18px; }
+#nova-categoria h2 { margin-top: 0; }
 .link { background: none; border: 0; color: var(--primaria); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; }
 .voltar { display: inline-block; margin-bottom: 4px; text-decoration: none; }
 

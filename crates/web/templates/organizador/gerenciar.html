@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="/organizador/eventos">← Meus eventos</a>
+<div class="titulo-acao">
+  <h1>{{ evento.nome() }}</h1>
+  <div class="acoes-linha">
+    <a class="botao secundario" href="/organizador/eventos/{{ evento.id() }}/editar">Alterar dados</a>
+    <a class="botao secundario" href="/organizador/eventos/{{ evento.id() }}/relatorio">Relatório e vendas</a>
+  </div>
+</div>
+<p class="meta">📅 {{ evento.data()|data }} às {{ evento.horario()|hora }} · 📍 {{ evento.local() }} ·
+  {% if realizado %}<span class="selo cinza">Realizado</span>{% else %}<span class="selo {{ evento.status().codigo() }}">{{ evento.status().nome() }}</span>{% endif %}
+  · Cancelamento pelo cliente: {% if evento.permite_cancelamento() %}permitido{% else %}não permitido{% endif %}</p>
+
+<div class="indicadores">
+  <div><span>Capacidade</span><strong>{{ evento.capacidade() }}</strong><small>{{ vagas_para_categorias }} ainda sem categoria</small></div>
+  <div><span>Ingressos vendidos</span><strong>{{ evento.total_vendido() }}</strong><small>&nbsp;</small></div>
+  <div><span>Disponíveis para venda</span><strong>{{ disponiveis }}</strong><small>soma das categorias</small></div>
+</div>
+
+<h2>Ingressos por categoria</h2>
+<table class="tabela">
+  <thead><tr><th>Categoria</th><th class="num">Preço</th><th>Lugar</th><th class="num">Vendidos</th><th class="num">Disponíveis</th><th class="num">Total</th><th></th></tr></thead>
+  <tbody>
+  {% for c in categorias %}
+  <tr>
+    <td>{{ c.categoria() }}</td>
+    <td class="num">{{ c.preco() }}</td>
+    <td>{% if let Some(st) = c.setor() %}assento marcado ({{ st.fileiras }} × {{ st.assentos_por_fileira }}){% else %}sem assento{% endif %}</td>
+    <td class="num">{{ c.vendidos() }}</td>
+    <td class="num">{% if c.esgotado() %}<span class="selo cinza">esgotado</span>{% else %}{{ c.disponivel() }}{% endif %}</td>
+    <td class="num">{{ c.quantidade() }}</td>
+    <td class="acoes-linha">
+      {% if !realizado %}
+      <a class="botao pequeno secundario" href="/organizador/eventos/{{ evento.id() }}/categorias/{{ c.id() }}">Editar</a>
+      {% if c.vendidos() == 0 %}
+      <form method="post" action="/organizador/eventos/{{ evento.id() }}/categorias/{{ c.id() }}/remover"
+            onsubmit="return confirm('Remover a categoria {{ c.categoria() }}?')"><button class="botao pequeno perigo">Remover</button></form>
+      {% endif %}
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+
+{% if !realizado %}
+<form method="post" action="/organizador/eventos/{{ evento.id() }}/categorias" class="cartao formulario" id="nova-categoria">
+  <h2>Adicionar categoria de ingresso</h2>
+  <p class="dica">Vagas livres para novas categorias: <strong>{{ vagas_para_categorias }}</strong>
+    (aumente a capacidade em "Alterar dados" se precisar de mais).</p>
+  {% if let Some(e) = erro_categoria %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <div class="colunas tres">
+    <label>Nome <input name="nome" value="{{ nova.nome }}" placeholder="VIP, Pista, Camarote..." required></label>
+    <label>Preço (R$) <input name="preco" value="{{ nova.preco }}" placeholder="120,00" required></label>
+    <label>Assento marcado?
+      <select name="assento" id="tipo-assento"><option value="nao">Não (lugar livre)</option><option value="sim" {% if nova.com_assento %}selected{% endif %}>Sim (mapa de assentos)</option></select></label>
+  </div>
+  <div class="colunas tres">
+    <label>Quantidade de ingressos <input name="quantidade" value="{{ nova.quantidade }}" inputmode="numeric"></label>
+    <label>Fileiras <input name="fileiras" value="{{ nova.fileiras }}" inputmode="numeric"><small>Máx. 26 (A a Z).</small></label>
+    <label>Assentos por fileira <input name="por_fileira" value="{{ nova.por_fileira }}" inputmode="numeric"><small>Máx. 30.</small></label>
+  </div>
+  <div class="acoes"><button class="botao">Adicionar categoria</button></div>
+</form>
+<script>
+  // mostra só os campos que valem para o tipo escolhido (quantidade OU fileiras × assentos)
+  const tipo = document.getElementById('tipo-assento');
+  const form = document.getElementById('nova-categoria');
+  function ajustar() {
+    const assento = tipo.value === 'sim';
+    form.querySelector('[name=quantidade]').closest('label').style.display = assento ? 'none' : '';
+    form.querySelector('[name=fileiras]').closest('label').style.display = assento ? '' : 'none';
+    form.querySelector('[name=por_fileira]').closest('label').style.display = assento ? '' : 'none';
+  }
+  tipo.addEventListener('change', ajustar); ajustar();
+</script>
+
+<section class="cartao zona-perigo">
+  <h2>Excluir evento</h2>
+  {% if evento.total_vendido() == 0 %}
+  <p>O evento ainda não tem ingressos vendidos e pode ser excluído.</p>
+  {% else %}
+  <p>O evento já tem vendas: para preservar o histórico dos clientes ele não pode ser excluído.
+     Para parar de vender, use <a href="/organizador/eventos/{{ evento.id() }}/editar">Alterar dados → Vendas abertas</a>.</p>
+  {% endif %}
+  <form method="post" action="/organizador/eventos/{{ evento.id() }}/excluir"
+        onsubmit="return confirm('Excluir definitivamente o evento {{ evento.nome() }}?')">
+    <button class="botao perigo" {% if evento.total_vendido() > 0 %}disabled{% endif %}>Excluir evento</button>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

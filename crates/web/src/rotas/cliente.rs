@@ -5,7 +5,7 @@ use axum::Form;
 use axum::extract::{Path, Query, State};
 use axum::response::{IntoResponse, Response};
 use axum_extra::extract::CookieJar;
-use dominio::entidades::{Codificavel, FormaPagamento, StatusVenda, TipoIngresso};
+use dominio::entidades::{Codificavel, FormaPagamento, StatusVenda, TipoIngresso, total_disponivel};
 use dominio::{Erro, Resultado};
 use serde::Deserialize;
 
@@ -16,7 +16,10 @@ use crate::sessao::{Aviso, Logado};
 
 pub async fn eventos(State(estado): State<Estado>, Logado(s): Logado, jar: CookieJar) -> Response {
     let lista = tentar!(estado.app.eventos.listar_disponiveis().await, s, "/");
-    let cartoes = lista.into_iter().map(|(evento, categorias)| CartaoEvento { evento, categorias }).collect();
+    let cartoes = lista
+        .into_iter()
+        .map(|(evento, categorias)| CartaoEvento { disponiveis: total_disponivel(&categorias), evento, categorias })
+        .collect();
     let (jar, aviso) = estado.sessoes.retirar_aviso(jar);
     (jar, render(PaginaEventos { layout: Layout::novo("Eventos disponíveis", Some(&s), aviso), cartoes })).into_response()
 }
@@ -52,6 +55,7 @@ pub async fn comprar(
         layout: Layout::novo(evento.nome(), Some(&s), aviso),
         preco_inteira: TipoIngresso::Inteira.politica().calcular(ingresso.preco()),
         preco_meia: TipoIngresso::Meia.politica().calcular(ingresso.preco()),
+        disponiveis: total_disponivel(&categorias),
         evento,
         categorias,
         ingresso,

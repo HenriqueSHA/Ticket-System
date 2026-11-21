@@ -38,8 +38,17 @@ pub fn criar(estado: Estado) -> Router {
         // organizador
         .route("/organizador/eventos", get(organizador::eventos))
         .route("/organizador/eventos/novo", get(organizador::form_novo).post(organizador::criar))
+        .route("/organizador/eventos/{id}", get(organizador::gerenciar))
         .route("/organizador/eventos/{id}/editar", get(organizador::form_editar).post(organizador::editar))
+        .route("/organizador/eventos/{id}/excluir", post(organizador::excluir))
+        .route("/organizador/eventos/{id}/categorias", post(organizador::adicionar_categoria))
+        .route(
+            "/organizador/eventos/{id}/categorias/{categoria}",
+            get(organizador::form_categoria).post(organizador::alterar_categoria),
+        )
+        .route("/organizador/eventos/{id}/categorias/{categoria}/remover", post(organizador::remover_categoria))
         .route("/organizador/eventos/{id}/relatorio", get(organizador::relatorio))
+        .route("/organizador/eventos/{id}/vendas/{venda}/checkin", post(organizador::checkin_da_lista))
         .route("/organizador/checkin", get(organizador::form_checkin).post(organizador::checkin))
         // superadmin
         .route("/admin/organizadores", get(admin::lista))

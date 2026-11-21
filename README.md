@@ -64,10 +64,22 @@ Abra **http://127.0.0.1:3000**. Na primeira execução o banco recebe dados de d
 
 Para zerar o banco: `docker compose down -v && docker compose up -d db`.
 
+## Funcionalidades
+
+| Perfil | O que pode fazer |
+|--------|------------------|
+| **Cliente** | criar conta (CPF validado), ver eventos com ingressos disponíveis, comprar escolhendo categoria, inteira/meia, assento no mapa e forma de pagamento, comprovante, histórico e cancelamento |
+| **Organizador** | criar a própria conta (CNPJ validado), cadastrar eventos com várias categorias (preço e quantidade, com ou sem assento marcado), **gerenciar cada evento**: ver vendidos/disponíveis por categoria, editar nome/preço/quantidade, adicionar e remover categorias, alterar capacidade, abrir/encerrar vendas e excluir evento sem vendas; relatório, lista de vendas e check-in |
+| **SuperAdmin** | cadastrar, listar, ativar, bloquear, editar e remover organizadores |
+
+Regras protegidas: a quantidade de uma categoria nunca fica abaixo do que já foi vendido; a soma
+das categorias não passa da capacidade; categoria ou evento com vendas não é apagado (o histórico
+dos clientes é preservado); o novo preço vale só para as próximas vendas.
+
 ## Testes
 
 ```bash
-cargo test                  # 25 testes (domínio + cenários com repositórios em memória)
+cargo test                  # 31 testes (domínio + cenários com repositórios em memória)
 cargo test -- --ignored     # + teste de integração no PostgreSQL real (precisa do docker)
 ```
 
@@ -113,6 +125,8 @@ A dependência sempre aponta para dentro: `web → aplicacao → dominio ← inf
 | 1 — Programa principal / login     | `aplicacao/src/servicos/autenticacao.rs` (`entrar`), `web/src/rotas/publico.rs` |
 | 2 — Cadastrar cliente + validar CPF| `autenticacao.rs` (`cadastrar_cliente`), `dominio/src/valores/documento.rs` |
 | 3 — Cadastrar evento               | `servicos/eventos.rs`, `dominio/src/entidades/evento.rs` (`EventoBuilder`) |
+| Gestão do evento (categorias, preço, quantidade, capacidade) | `servicos/eventos.rs` (`alterar_categoria`, `adicionar_categoria`...), `entidades/ingresso.rs` |
+| Cadastro de organizador            | `aplicacao/src/cadastro_organizador.rs` (usado pela tela pública e pelo SuperAdmin) |
 | 4 — Comprar ingresso               | `servicos/vendas.rs` (`preparar`, `confirmar`), `postgres/vendas.rs` (`registrar`) |
 | 5 — Cancelar compra                | `servicos/vendas.rs` (`cancelar`), `entidades/venda.rs` (`verificar_cancelamento`) |
 | 6 — Relatório e check-in           | `servicos/relatorios.rs`, `entidades/relatorio.rs` (`calcular`)   |

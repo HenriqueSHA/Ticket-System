@@ -421,3 +421,85 @@ async fn organizador_cria_conta_e_vende_ingressos() {
     assert_eq!(venda.valor().to_string(), "R$ 22,50");
     assert_eq!(c.app.relatorios.relatorio(&sessao, e.id()).await.unwrap().vendidos, 1);
 }
+
+// ===================== gestão do evento pelo organizador =====================
+
+/// Organizador ajusta preço e quantidade, adiciona e remove categorias e muda a capacidade.
+#[tokio::test]
+async fn organizador_gerencia_categorias_e_capacidade() {
+    let c = cenario().await;
+    let sol = c.sol().await;
+    let ev = &c.app.eventos;
+    let (show, pista) = c.categoria("Show", "Pista").await; // 100 ingressos, 1 vendido; capacidade 160 = 100 + 40 + 20
+
+    // preço e quantidade da Pista
+    let reais = |t: &str| Dinheiro::de_texto(t).unwrap();
+    let nova = ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista Premium", reais("130,00"), Some(90)).await.unwrap();
+    assert_eq!((nova.categoria(), nova.quantidade(), nova.disponivel()), ("Pista Premium", 90, 89));
+    // não pode ficar abaixo do vendido nem passar da capacidade (90 + 40 + 20 = 150; vagas = 160 - 60 = 100)
+    let r = ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista", reais("130"), Some(0)).await;
+    assert!(matches!(r, Err(Erro::Validacao(_))));
+    let r = ev.alterar_categoria(&sol, show.id(), pista.id(), "Pista", reais("130"), Some(101)).await;
+    assert!(matches!(r, Err(Erro::RegraNegocio(ref m)) if m.contains("capacidade")));
+    // a compra seguinte usa o novo preço
+    let (_, pista) = c.categoria("Show", "Pista Premium").await;
+    let (venda, _) = c.app.vendas.confirmar(&c.ana().await, &pedido(&show, &pista, TipoIngresso::Inteira, None)).await.unwrap();
+    assert_eq!(venda.valor().to_string(), "R$ 130,00");
+
+    // nova categoria cabe nas 10 vagas que sobraram (90 + 40 + 20 = 150)
+    let r = ev.adicionar_categoria(&sol, show.id(), NovaCategoria::sem_assento("Backstage", reais("500"), 11).unwrap()).await;
+    assert!(matches!(r, Err(Erro::RegraNegocio(_))));
+    let back = ev.adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Backstage", reais("500"), 2, 5).unwrap()).await.unwrap();
+    assert_eq!(c.app.eventos.mapa(&back).await.unwrap().total(), 10);
+
+    // capacidade: não pode ficar abaixo da soma das categorias (160); pode aumentar
+    let mut dados = show.dados().clone();
+    dados.capacidade = 150;
+    assert!(ev.alterar(&sol, show.id(), dados.clone(), StatusEvento::Aberto).await.is_err());
+    dados.capacidade = 200;
+    assert_eq!(ev.alterar(&sol, show.id(), dados, StatusEvento::Aberto).await.unwrap().capacidade(), 200);
+
+    // remover: categoria com vendas não; sem vendas sim
+    let cadeira = ev.categorias(show.id()).await.unwrap().into_iter().find(|i| i.categoria() == "Cadeira").unwrap();
+    assert!(matches!(ev.remover_categoria(&sol, show.id(), cadeira.id()).await, Err(Erro::RegraNegocio(_))));
+    ev.remover_categoria(&sol, show.id(), back.id()).await.unwrap();
+    assert_eq!(ev.categorias(show.id()).await.unwrap().len(), 3);
+
+    // outro organizador não mexe no evento
+    let arena = c.login("arena@cultural.com", "arena123").await;
+    let r = ev.alterar_categoria(&arena, show.id(), cadeira.id(), "X", reais("1"), None).await;
+    assert!(matches!(r, Err(Erro::NaoEncontrado(_))));
+}
+
+#[tokio::test]
+async fn organizador_exclui_evento_sem_vendas_e_ve_lista_de_vendas() {
+    let c = cenario().await;
+    let sol = c.sol().await;
+    let (show, _) = c.categoria("Show", "Pista").await;
+    let r = c.app.eventos.remover(&sol, show.id()).await;
+    assert!(matches!(r, Err(Erro::RegraNegocio(ref m)) if m.contains("já tem vendas")));
+
+    let vendas = c.app.relatorios.vendas_do_evento(&sol, show.id()).await.unwrap();
+    assert_eq!(vendas.len(), 4);
+    assert!(vendas.iter().any(|v| v.cliente == "Ana Souza" && v.assento.as_deref() == Some("A4")));
+    let arena = c.login("arena@cultural.com", "arena123").await;
+    assert!(c.app.relatorios.vendas_do_evento(&arena, show.id()).await.is_err());
+
+    // evento novo, sem vendas: pode excluir; e a última categoria não pode ser removida
+    let dados = DadosEvento {
+        nome: "Ensaio Aberto".into(),
+        descricao: String::new(),
+        local: "Sala 1".into(),
+        data: agora_teste().date().checked_add_days(Days::new(3)).unwrap(),
+        horario: NaiveTime::from_hms_opt(10, 0, 0).unwrap(),
+        capacidade: 30,
+        permite_cancelamento: true,
+    };
+    let mut b = c.app.eventos.iniciar_cadastro(&sol, dados).await.unwrap();
+    b.adicionar_categoria(NovaCategoria::sem_assento("Geral", Dinheiro::ZERO, 30).unwrap()).unwrap();
+    let evento = c.app.eventos.cadastrar(&sol, &b.construir().unwrap()).await.unwrap();
+    let unica = c.app.eventos.categorias(evento.id()).await.unwrap().remove(0);
+    assert!(c.app.eventos.remover_categoria(&sol, evento.id(), unica.id()).await.is_err());
+    c.app.eventos.remover(&sol, evento.id()).await.unwrap();
+    assert!(c.app.eventos.gerenciar(&sol, evento.id()).await.is_err());
+}

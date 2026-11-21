@@ -45,6 +45,34 @@ impl Tabelas {
     fn evento_mut(&mut self, id: i64) -> Option<&mut Evento> {
         self.eventos.iter_mut().find(|e| e.id() == id)
     }
+
+    /// Grava a categoria e gera a matriz de assentos (dois laços aninhados).
+    fn criar_categoria(&mut self, evento_id: i64, cat: &NovaCategoria) -> Ingresso {
+        let ingresso = Ingresso::reconstruir(
+            self.novo_id(),
+            evento_id,
+            cat.nome().to_string(),
+            cat.preco(),
+            cat.quantidade(),
+            cat.quantidade(),
+            cat.setor(),
+        );
+        if let Some(s) = cat.setor() {
+            for f in 0..s.fileiras {
+                for n in 1..=s.assentos_por_fileira {
+                    let id = self.novo_id();
+                    let fileira = letra_fileira(f as usize);
+                    self.assentos.push(Assento::reconstruir(id, ingresso.id(), cat.nome().into(), fileira, n, Situacao::Livre));
+                }
+            }
+        }
+        self.ingressos.push(ingresso.clone());
+        ingresso
+    }
+
+    fn evento_possui_vendas(&self, evento_id: i64) -> bool {
+        self.vendas.iter().any(|v| v.evento_id() == evento_id)
+    }
 }
 
 /// Banco em memória: uma única instância implementa os quatro repositórios.
@@ -160,25 +188,7 @@ impl RepositorioEventos for RepositoriosMemoria {
         let mut t = self.t();
         let evento = Evento::reconstruir(t.novo_id(), organizador_id, novo.dados().clone(), 0, StatusEvento::Aberto);
         for cat in novo.categorias() {
-            let ingresso_id = t.novo_id();
-            t.ingressos.push(Ingresso::reconstruir(
-                ingresso_id,
-                evento.id(),
-                cat.nome().to_string(),
-                cat.preco(),
-                cat.quantidade(),
-                cat.quantidade(),
-                cat.setor(),
-            ));
-            if let Some(s) = cat.setor() {
-                for f in 0..s.fileiras {
-                    for n in 1..=s.assentos_por_fileira {
-                        let id = t.novo_id();
-                        let fileira = letra_fileira(f as usize);
-                        t.assentos.push(Assento::reconstruir(id, ingresso_id, cat.nome().into(), fileira, n, Situacao::Livre));
-                    }
-                }
-            }
+            t.criar_categoria(evento.id(), cat);
         }
         t.eventos.push(evento.clone());
         Ok(evento)
@@ -187,11 +197,12 @@ impl RepositorioEventos for RepositoriosMemoria {
         Ok(self.t().eventos.iter().find(|e| e.id() == id).cloned())
     }
     async fn listar_disponiveis(&self, hoje: NaiveDate) -> Resultado<Vec<Evento>> {
-        let mut lista: Vec<Evento> = self
-            .t()
+        let t = self.t();
+        let mut lista: Vec<Evento> = t
             .eventos
             .iter()
             .filter(|e| e.status() == StatusEvento::Aberto && e.data() > hoje && !e.esta_lotado())
+            .filter(|e| t.ingressos.iter().any(|i| i.evento_id() == e.id() && !i.esgotado()))
             .cloned()
             .collect();
         lista.sort_by_key(|e| (e.data(), e.horario()));
@@ -207,6 +218,54 @@ impl RepositorioEventos for RepositoriosMemoria {
         if let Some(e) = t.evento_mut(evento.id()) {
             *e = evento.clone();
         }
+        Ok(())
+    }
+    async fn possui_vendas(&self, evento_id: i64) -> Resultado<bool> {
+        Ok(self.t().evento_possui_vendas(evento_id))
+    }
+    async fn remover(&self, evento_id: i64) -> Resultado<()> {
+        let mut t = self.t();
+        if t.evento_possui_vendas(evento_id) {
+            return Err(Erro::regra("o evento já tem vendas e não pode ser excluído"));
+        }
+        let ingressos: Vec<i64> = t.ingressos.iter().filter(|i| i.evento_id() == evento_id).map(Ingresso::id).collect();
+        t.assentos.retain(|a| !ingressos.contains(&a.ingresso_id()));
+        t.ingressos.retain(|i| i.evento_id() != evento_id);
+        t.eventos.retain(|e| e.id() != evento_id);
+        Ok(())
+    }
+    async fn adicionar_categoria(&self, evento_id: i64, categoria: &NovaCategoria) -> Resultado<Ingresso> {
+        Ok(self.t().criar_categoria(evento_id, categoria))
+    }
+    async fn atualizar_categoria(&self, novo: &Ingresso) -> Resultado<()> {
+        let mut t = self.t();
+        let pos = t
+            .ingressos
+            .iter()
+            .position(|i| i.id() == novo.id())
+            .ok_or_else(|| Erro::nao_encontrado("categoria não encontrada"))?;
+        let vendidos = t.ingressos[pos].vendidos(); // valor atual, como no UPDATE do PostgreSQL
+        if novo.quantidade() < vendidos {
+            return Err(Erro::regra("a quantidade não pode ser menor que a de ingressos já vendidos"));
+        }
+        t.ingressos[pos] = Ingresso::reconstruir(
+            novo.id(),
+            novo.evento_id(),
+            novo.categoria().to_string(),
+            novo.preco(),
+            novo.quantidade(),
+            novo.quantidade() - vendidos,
+            novo.setor(),
+        );
+        Ok(())
+    }
+    async fn remover_categoria(&self, ingresso_id: i64) -> Resultado<()> {
+        let mut t = self.t();
+        if t.vendas.iter().any(|v| v.ingresso_id() == ingresso_id) {
+            return Err(Erro::regra("esta categoria já tem vendas e não pode ser removida"));
+        }
+        t.assentos.retain(|a| a.ingresso_id() != ingresso_id);
+        t.ingressos.retain(|i| i.id() != ingresso_id);
         Ok(())
     }
     async fn listar_categorias(&self, evento_id: i64) -> Resultado<Vec<Ingresso>> {
@@ -299,6 +358,23 @@ impl RepositorioVendas for RepositoriosMemoria {
 
     async fn listar_do_evento(&self, evento_id: i64) -> Resultado<Vec<Venda>> {
         Ok(self.t().vendas.iter().filter(|v| v.evento_id() == evento_id).cloned().collect())
+    }
+
+    async fn listar_detalhadas_do_evento(&self, evento_id: i64) -> Resultado<Vec<VendaDetalhada>> {
+        let t = self.t();
+        let mut lista: Vec<VendaDetalhada> = t
+            .vendas
+            .iter()
+            .filter(|v| v.evento_id() == evento_id)
+            .map(|v| VendaDetalhada {
+                venda: v.clone(),
+                cliente: t.usuarios.iter().find(|u| u.id() == v.cliente_id()).map_or_else(String::new, |u| u.nome().to_string()),
+                categoria: t.ingressos.iter().find(|i| i.id() == v.ingresso_id()).map_or_else(String::new, |i| i.categoria().to_string()),
+                assento: t.assentos.iter().find(|a| Some(a.id()) == v.assento_id()).map(Assento::rotulo),
+            })
+            .collect();
+        lista.sort_by_key(|d| std::cmp::Reverse(d.venda.id()));
+        Ok(lista)
     }
 
     async fn historico_do_cliente(&self, cliente_id: i64) -> Resultado<Vec<ItemHistorico>> {

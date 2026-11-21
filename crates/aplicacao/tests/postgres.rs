@@ -82,6 +82,22 @@ async fn executar(url: String) {
     assert_eq!((r.vendidos, r.cancelados), (5, 1));
     assert_eq!(r.receita.to_string(), "R$ 770,00");
 
+    // gestão: quantidade não fica abaixo do vendido; preço novo vale na próxima venda
+    let pista = cats.iter().find(|c| c.categoria() == "Pista").unwrap();
+    let preco = dominio::valores::Dinheiro::de_texto("99,90").unwrap();
+    let r = app.eventos.alterar_categoria(&sol, show.id(), pista.id(), "Pista", preco, Some(0)).await;
+    assert!(r.is_err());
+    let alterada = app.eventos.alterar_categoria(&sol, show.id(), pista.id(), "Pista", preco, Some(80)).await.unwrap();
+    assert_eq!((alterada.quantidade(), alterada.disponivel()), (80, 79));
+    let gravada = app.eventos.categorias(show.id()).await.unwrap().into_iter().find(|c| c.id() == pista.id()).unwrap();
+    assert_eq!((gravada.quantidade(), gravada.disponivel(), gravada.preco()), (80, 79, preco));
+    let nova = app.eventos.adicionar_categoria(&sol, show.id(), NovaCategoria::com_assento("Mezanino", preco, 2, 5).unwrap()).await.unwrap();
+    assert_eq!(app.eventos.mapa(&nova).await.unwrap().total(), 10);
+    app.eventos.remover_categoria(&sol, show.id(), nova.id()).await.unwrap();
+    assert!(app.eventos.remover(&sol, show.id()).await.is_err()); // tem vendas
+    let vendas = app.relatorios.vendas_do_evento(&sol, show.id()).await.unwrap();
+    assert_eq!(vendas.len(), 6);
+
     // unicidade garantida também pelo banco
     let dup = CadastroCliente {
         nome: "Outra".into(),

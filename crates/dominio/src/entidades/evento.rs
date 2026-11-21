@@ -197,10 +197,35 @@ impl Evento {
         Ok(())
     }
 
-    /// Altera os dados do evento. A capacidade não muda (categorias e assentos já foram gerados).
-    pub fn alterar(&mut self, dados: DadosEvento, status: StatusEvento, hoje: NaiveDate) -> Resultado<()> {
-        let dados = DadosEvento { capacidade: self.dados.capacidade, ..dados };
+    /// Mudanças na estrutura do evento (categorias, exclusão) só antes de ele acontecer.
+    pub fn verificar_gerenciavel(&self, hoje: NaiveDate) -> Resultado<()> {
+        if self.ja_ocorreu(hoje) {
+            return Err(Erro::regra("o evento já foi realizado e não pode mais ser alterado"));
+        }
+        Ok(())
+    }
+
+    /// A soma das quantidades das categorias não pode passar da capacidade.
+    /// `soma_outras` = soma das demais categorias; `quantidade` = a nova/alterada.
+    pub fn verificar_capacidade_para(&self, soma_outras: i32, quantidade: i32) -> Resultado<()> {
+        if soma_outras + quantidade > self.dados.capacidade {
+            return Err(Erro::regra(format!(
+                "ultrapassa a capacidade do evento ({} vagas livres para categorias)",
+                (self.dados.capacidade - soma_outras).max(0)
+            )));
+        }
+        Ok(())
+    }
+
+    /// Altera os dados do evento. A nova capacidade não pode ser menor que a soma das
+    /// quantidades das categorias já cadastradas (`soma_categorias`).
+    pub fn alterar(&mut self, dados: DadosEvento, status: StatusEvento, hoje: NaiveDate, soma_categorias: i32) -> Resultado<()> {
         dados.validar(hoje)?;
+        if dados.capacidade < soma_categorias {
+            return Err(Erro::regra(format!(
+                "a capacidade não pode ser menor que a soma das categorias ({soma_categorias})"
+            )));
+        }
         self.dados = dados.normalizado();
         self.status = status;
         Ok(())
@@ -238,6 +263,18 @@ mod testes {
         assert!(matches!(b.adicionar_categoria(excede), Err(Erro::RegraNegocio(_))));
         b.adicionar_categoria(NovaCategoria::com_assento("Cadeira", preco, 4, 10).unwrap()).unwrap();
         assert_eq!(b.construir().unwrap().categorias().len(), 2);
+    }
+
+    #[test]
+    fn capacidade_e_soma_das_categorias() {
+        let mut e = Evento::reconstruir(1, 1, dados(100), 10, StatusEvento::Aberto);
+        assert!(e.verificar_capacidade_para(60, 40).is_ok());
+        assert!(matches!(e.verificar_capacidade_para(60, 41), Err(Erro::RegraNegocio(_))));
+        assert!(e.alterar(dados(80), StatusEvento::Aberto, hoje(), 90).is_err()); // menor que as categorias
+        e.alterar(dados(150), StatusEvento::Encerrado, hoje(), 90).unwrap();
+        assert_eq!((e.capacidade(), e.status()), (150, StatusEvento::Encerrado));
+        let realizado = Evento::reconstruir(2, 1, DadosEvento { data: hoje(), ..dados(10) }, 0, StatusEvento::Aberto);
+        assert!(realizado.verificar_gerenciavel(hoje()).is_err());
     }
 
     #[test]

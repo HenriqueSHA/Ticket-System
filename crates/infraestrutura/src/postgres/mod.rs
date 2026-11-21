@@ -56,18 +56,24 @@ impl BancoPostgres {
     }
 }
 
-/// Converte erros do sqlx em erros do domínio.
-/// Violação de UNIQUE (código 23505) vira regra de negócio — ex.: assento já vendido.
+/// Converte erros do sqlx em erros do domínio. Restrições violadas no banco viram regra de
+/// negócio: UNIQUE (23505 — ex.: assento já vendido), chave estrangeira (23503 — registro com
+/// vendas) e CHECK (23514 — ex.: capacidade menor que o já vendido).
 pub(crate) fn erro_bd(e: sqlx::Error) -> Erro {
-    if let sqlx::Error::Database(db) = &e
-        && db.code().as_deref() == Some("23505")
-    {
-        return Erro::regra(match db.constraint() {
-            Some("vendas_um_ativo_por_assento") => "assento já vendido",
-            Some("usuarios_email_key") => "já existe um usuário com este e-mail",
-            Some("usuarios_documento_key") => "já existe um usuário com este CPF/CNPJ",
-            _ => "registro duplicado",
-        });
+    if let sqlx::Error::Database(db) = &e {
+        match db.code().as_deref() {
+            Some("23505") => {
+                return Erro::regra(match db.constraint() {
+                    Some("vendas_um_ativo_por_assento") => "assento já vendido",
+                    Some("usuarios_email_key") => "já existe um usuário com este e-mail",
+                    Some("usuarios_documento_key") => "já existe um usuário com este CPF/CNPJ",
+                    _ => "registro duplicado",
+                });
+            }
+            Some("23503") => return Erro::regra("o registro tem vendas ligadas a ele e não pode ser apagado"),
+            Some("23514") => return Erro::regra("valor incompatível com as vendas já realizadas"),
+            _ => {}
+        }
     }
     Erro::Infraestrutura(format!("erro no banco de dados: {e}"))
 }
