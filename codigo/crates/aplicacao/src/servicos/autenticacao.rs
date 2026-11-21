@@ -10,7 +10,7 @@ use crate::fabrica::{FabricaUsuarios, verificar_unicidade};
 use crate::sessao::Sessao;
 
 /// Dados do formulário "Criar conta".
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CadastroCliente {
     pub nome: String,
     pub cpf: String,

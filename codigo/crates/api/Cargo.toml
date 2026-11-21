@@ -1,0 +1,26 @@
+[package]
+name = "api"
+description = "Back-end: API REST/JSON sobre os casos de uso (único serviço que acessa o PostgreSQL)"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "ingressos-api"
+path = "src/main.rs"
+
+[dependencies]
+dominio.workspace = true
+aplicacao.workspace = true
+infraestrutura.workspace = true
+contrato.workspace = true
+chrono.workspace = true
+serde.workspace = true
+tokio.workspace = true
+axum = { version = "0.8", features = ["macros"] }
+dotenvy = "0.15"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde_json = "1"

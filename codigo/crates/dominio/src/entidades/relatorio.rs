@@ -2,7 +2,7 @@ use super::{Evento, Ingresso, StatusVenda, TipoIngresso, Venda};
 use crate::valores::Dinheiro;
 
 /// Relatório de um evento para o organizador (Algoritmo 6).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RelatorioEvento {
     pub evento: Evento,
     pub vendidos: i32,

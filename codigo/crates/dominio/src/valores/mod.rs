@@ -33,3 +33,20 @@ pub fn validar_senha(senha: &str) -> Resultado<()> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod testes_json {
+    use super::*;
+
+    #[test]
+    fn json_revalida_objetos_de_valor() {
+        let cpf: Cpf = serde_json::from_str("\"529.982.247-25\"").unwrap();
+        assert_eq!(serde_json::to_string(&cpf).unwrap(), "\"52998224725\"");
+        assert!(serde_json::from_str::<Cpf>("\"111.111.111-11\"").is_err());
+        assert!(serde_json::from_str::<Email>("\"sem-arroba\"").is_err());
+        assert!(serde_json::from_str::<Dinheiro>("-5").is_err());
+        assert_eq!(serde_json::from_str::<Dinheiro>("12050").unwrap().to_string(), "R$ 120,50");
+        let erro = serde_json::to_string(&Erro::regra("evento lotado")).unwrap();
+        assert_eq!(erro, r#"{"tipo":"RegraNegocio","mensagem":"evento lotado"}"#);
+    }
+}

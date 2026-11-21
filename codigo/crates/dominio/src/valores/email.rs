@@ -3,7 +3,8 @@ use std::fmt;
 use crate::{Erro, Resultado};
 
 /// E-mail válido, sempre em minúsculas (assim "Ana@Email.com" e "ana@email.com" são o mesmo login).
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")] // ao ler JSON, passa pela validação
 pub struct Email(String);
 
 impl Email {
@@ -29,6 +30,18 @@ impl Email {
 
     pub fn como_texto(&self) -> &str {
         &self.0
+    }
+}
+
+impl TryFrom<String> for Email {
+    type Error = Erro;
+    fn try_from(texto: String) -> Resultado<Self> {
+        Email::novo(&texto)
+    }
+}
+impl From<Email> for String {
+    fn from(email: Email) -> String {
+        email.0
     }
 }
 

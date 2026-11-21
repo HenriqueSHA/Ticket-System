@@ -7,7 +7,8 @@ use crate::{Erro, Resultado};
 /// Valor monetário guardado em **centavos inteiros**.
 ///
 /// Usar inteiros evita os erros de arredondamento do tipo real (0,1 + 0,2 ≠ 0,3 em ponto flutuante).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "i64", into = "i64")] // trafega como centavos; negativo é recusado
 pub struct Dinheiro(i64);
 
 impl Dinheiro {
@@ -54,6 +55,18 @@ impl Dinheiro {
             com_pontos.push(c);
         }
         format!("{com_pontos},{:02}", self.0 % 100)
+    }
+}
+
+impl TryFrom<i64> for Dinheiro {
+    type Error = Erro;
+    fn try_from(centavos: i64) -> Resultado<Self> {
+        Dinheiro::de_centavos(centavos)
+    }
+}
+impl From<Dinheiro> for i64 {
+    fn from(d: Dinheiro) -> i64 {
+        d.0
     }
 }
 

@@ -5,7 +5,7 @@ use crate::precos::{PoliticaPreco, PrecoInteira, PrecoMeiaEntrada};
 use crate::valores::Dinheiro;
 use crate::{Erro, Resultado};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TipoIngresso {
     Inteira,
     Meia,
@@ -36,7 +36,7 @@ impl Codificavel for TipoIngresso {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum FormaPagamento {
     Pix,
     Credito,
@@ -65,7 +65,7 @@ impl Codificavel for FormaPagamento {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusVenda {
     Confirmada,
     Cancelada,
@@ -109,7 +109,7 @@ pub struct NovaVenda {
     pub assento_id: Option<i64>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Venda {
     id: i64,
     data_compra: NaiveDateTime,
@@ -223,7 +223,7 @@ impl Venda {
 }
 
 /// Linha do histórico de compras do cliente (consulta com dados do evento).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ItemHistorico {
     pub venda: Venda,
     pub evento: String,
@@ -236,7 +236,7 @@ pub struct ItemHistorico {
 }
 
 /// Venda de um evento com o nome do cliente (lista de vendas do organizador).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct VendaDetalhada {
     pub venda: Venda,
     pub cliente: String,

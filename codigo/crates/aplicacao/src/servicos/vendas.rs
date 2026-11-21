@@ -8,7 +8,7 @@ use dominio::{Erro, Resultado};
 use crate::sessao::Sessao;
 
 /// Escolhas do cliente durante a compra.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Pedido {
     pub evento_id: i64,
     pub ingresso_id: i64,
@@ -19,7 +19,7 @@ pub struct Pedido {
 }
 
 /// Resumo mostrado antes da confirmação.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ResumoCompra {
     pub evento: Evento,
     pub ingresso: Ingresso,

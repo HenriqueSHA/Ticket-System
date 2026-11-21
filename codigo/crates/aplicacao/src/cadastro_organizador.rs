@@ -9,7 +9,7 @@ use dominio::valores::{Cnpj, texto_obrigatorio};
 use crate::fabrica::{FabricaUsuarios, verificar_unicidade};
 
 /// Dados do formulário de cadastro de organizador.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct CadastroOrganizador {
     pub razao_social: String,
     pub cnpj: String,

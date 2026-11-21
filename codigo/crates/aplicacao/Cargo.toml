@@ -9,6 +9,7 @@ authors.workspace = true
 dominio.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 infraestrutura.workspace = true

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/dominio", "crates/aplicacao", "crates/infraestrutura", "crates/web"]
+members = ["crates/dominio", "crates/aplicacao", "crates/infraestrutura", "crates/contrato", "crates/api", "crates/web"]
 
 [workspace.package]
 version = "1.0.0"
@@ -11,6 +11,8 @@ authors = ["Equipe 11 — UNIFACS 2026.2"]
 dominio = { path = "crates/dominio" }
 aplicacao = { path = "crates/aplicacao" }
 infraestrutura = { path = "crates/infraestrutura" }
+contrato = { path = "crates/contrato" }
+api = { path = "crates/api" }
 
 async-trait = "0.1"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }

@@ -7,7 +7,7 @@ pub const MAX_FILEIRAS: i32 = 26;
 pub const MAX_ASSENTOS_POR_FILEIRA: i32 = 30;
 
 /// Dimensões da matriz de assentos de uma categoria com assento marcado.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Setor {
     pub fileiras: i32,
     pub assentos_por_fileira: i32,
@@ -71,7 +71,7 @@ pub fn total_disponivel(categorias: &[Ingresso]) -> i32 {
 }
 
 /// Categoria de ingresso já cadastrada em um evento (tabela `ingressos`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Ingresso {
     id: i64,
     evento_id: i64,

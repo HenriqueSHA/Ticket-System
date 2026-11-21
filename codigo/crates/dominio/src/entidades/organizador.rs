@@ -2,7 +2,7 @@ use super::Codificavel;
 use crate::Resultado;
 use crate::valores::{Cnpj, texto_obrigatorio};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusOrganizador {
     Ativo,
     Bloqueado,
@@ -47,7 +47,7 @@ impl NovoOrganizador {
 }
 
 /// Empresa produtora de eventos. Entra no sistema pelo usuário vinculado (`usuario_id`).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Organizador {
     id: i64,
     usuario_id: i64,

@@ -3,7 +3,7 @@ use dominio::{Erro, Resultado};
 
 /// Usuário que fez login. É criado pelo `ServicoAutenticacao::entrar` e enviado a cada
 /// caso de uso, que confere se o perfil tem permissão (controle de acesso — seção 7.4).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Sessao {
     pub usuario_id: i64,
     pub nome: String,

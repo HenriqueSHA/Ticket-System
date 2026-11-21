@@ -25,7 +25,8 @@ fn todos_iguais(d: &[u32]) -> bool {
 }
 
 /// CPF válido, guardado somente com os 11 dígitos.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")] // ao ler JSON, passa pela validação
 pub struct Cpf(String);
 
 impl Cpf {
@@ -71,7 +72,8 @@ impl fmt::Display for Cpf {
 /// e os 2 últimos são os dígitos verificadores. No cálculo, cada caractere vale o seu código
 /// ASCII menos 48 ('0' = 0 … '9' = 9, 'A' = 17 … 'Z' = 42) — para CNPJs só com números o
 /// resultado é o mesmo do cálculo antigo.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")] // ao ler JSON, passa pela validação
 pub struct Cnpj(String);
 
 impl Cnpj {
@@ -119,6 +121,30 @@ impl Cnpj {
 
     pub fn digitos(&self) -> &str {
         &self.0
+    }
+}
+
+// Conversões usadas na (de)serialização: JSON → validação pelo construtor.
+impl TryFrom<String> for Cpf {
+    type Error = Erro;
+    fn try_from(texto: String) -> Resultado<Self> {
+        Cpf::novo(&texto)
+    }
+}
+impl From<Cpf> for String {
+    fn from(cpf: Cpf) -> String {
+        cpf.0
+    }
+}
+impl TryFrom<String> for Cnpj {
+    type Error = Erro;
+    fn try_from(texto: String) -> Resultado<Self> {
+        Cnpj::novo(&texto)
+    }
+}
+impl From<Cnpj> for String {
+    fn from(cnpj: Cnpj) -> String {
+        cnpj.0
     }
 }
 

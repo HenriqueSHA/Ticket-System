@@ -1,6 +1,6 @@
 use super::{Codificavel, Ingresso};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Situacao {
     Livre,
     Ocupado,
@@ -17,7 +17,7 @@ impl Codificavel for Situacao {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Assento {
     id: i64,
     ingresso_id: i64,
@@ -74,21 +74,21 @@ pub fn indice_fileira(letra: &str) -> Option<usize> {
 }
 
 /// Um assento no mapa (para desenhar a tela).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CelulaMapa {
     pub numero: i32,
     pub rotulo: String,
     pub ocupado: bool,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LinhaMapa {
     pub letra: String,
     pub assentos: Vec<CelulaMapa>,
 }
 
 /// Mapa de assentos de um setor, guardado como **matriz** `matriz[fileira][número]`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MapaAssentos {
     setor: String,
     matriz: Vec<Vec<Situacao>>,

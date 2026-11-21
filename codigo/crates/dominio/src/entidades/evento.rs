@@ -4,7 +4,7 @@ use super::{Codificavel, NovaCategoria};
 use crate::valores::texto_obrigatorio;
 use crate::{Erro, Resultado};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum StatusEvento {
     /// Vendas abertas.
     Aberto,
@@ -33,7 +33,7 @@ impl Codificavel for StatusEvento {
 }
 
 /// Dados informados pelo organizador (formulário de cadastro/alteração).
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct DadosEvento {
     pub nome: String,
     pub descricao: String,
@@ -122,7 +122,7 @@ impl EventoBuilder {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Evento {
     id: i64,
     organizador_id: i64,

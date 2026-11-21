@@ -2,7 +2,7 @@ use super::Codificavel;
 use crate::Resultado;
 use crate::valores::{Email, texto_obrigatorio};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum Perfil {
     Cliente,
     Organizador,

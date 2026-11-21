@@ -5,7 +5,8 @@
 
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(tag = "tipo", content = "mensagem")] // JSON: {"tipo": "Validacao", "mensagem": "..."}
 pub enum Erro {
     /// Dado de entrada inválido (CPF errado, preço negativo, campo vazio...).
     Validacao(String),
