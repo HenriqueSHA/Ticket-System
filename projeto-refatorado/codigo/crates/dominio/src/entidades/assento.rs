@@ -165,7 +165,7 @@ fn tamanho(n: i32) -> usize {
     usize::try_from(n).unwrap_or(0)
 }
 
-/// Número do assento para exibição (o mapa tem no máximo 26 × 50 posições).
+/// Número do assento para exibição (o mapa tem no máximo 26 × 30 posições).
 fn numero_i32(n: usize) -> i32 {
     i32::try_from(n).unwrap_or(i32::MAX)
 }

@@ -142,10 +142,8 @@ fn pagina_novo(s: &Sessao, campos: CamposEvento, categorias: Vec<LinhaCategoria>
 pub async fn form_novo(State(estado): State<Estado>, Logado(s): Logado) -> Response {
     tentar!(estado.back.eventos.organizador_ativo(&s).await, s, "/");
     let campos = CamposEvento { permite_cancelamento: true, vendas_abertas: true, ..Default::default() };
-    let categorias = vec![
-        LinhaCategoria { nome: "Pista".into(), ..Default::default() },
-        LinhaCategoria { nome: "Cadeira".into(), com_assento: true, ..Default::default() },
-    ];
+    // linhas em branco (só com exemplo no placeholder): as que ficarem vazias são ignoradas
+    let categorias = vec![LinhaCategoria::default(), LinhaCategoria { com_assento: true, ..Default::default() }];
     pagina_novo(&s, campos, categorias, vec![])
 }
 

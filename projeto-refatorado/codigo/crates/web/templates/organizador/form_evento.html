@@ -28,7 +28,7 @@
     <tbody>
     {% for c in categorias %}
     <tr>
-      <td><input name="cat_nome" value="{{ c.nome }}"></td>
+      <td><input name="cat_nome" value="{{ c.nome }}" placeholder="{% if c.com_assento %}Ex.: Cadeira{% else %}Ex.: Pista{% endif %}"></td>
       <td><input name="cat_preco" value="{{ c.preco }}" placeholder="120,00"></td>
       <td><select name="cat_assento"><option value="nao">Não</option><option value="sim" {% if c.com_assento %}selected{% endif %}>Sim</option></select></td>
       <td><input name="cat_quantidade" value="{{ c.quantidade }}" inputmode="numeric"></td>

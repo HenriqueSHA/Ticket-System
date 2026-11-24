@@ -204,6 +204,18 @@ async fn organizador_cria_evento_pelas_telas() {
         ("cat_fileiras", ""),
         ("cat_por_fileira", ""),
     ]);
+    // o formulário novo vem com as linhas de categoria vazias (nomes só como exemplo), e a
+    // linha que o organizador não usar é ignorada
+    let (_, form) = pagina(&n, &format!("{front}/organizador/eventos/novo")).await;
+    assert!(form.contains("placeholder=\"Ex.: Cadeira\"") && !form.contains("value=\"Cadeira\""));
+    bom.extend([
+        ("cat_nome", ""),
+        ("cat_preco", ""),
+        ("cat_assento", "sim"),
+        ("cat_quantidade", ""),
+        ("cat_fileiras", ""),
+        ("cat_por_fileira", ""),
+    ]);
     let (destino, html) = enviar(&n, &format!("{front}/organizador/eventos/novo"), &bom).await;
     assert!(destino.starts_with("/organizador/eventos/"), "{destino}");
     assert!(html.contains("Festa") && html.contains("Ingressos por categoria"));
