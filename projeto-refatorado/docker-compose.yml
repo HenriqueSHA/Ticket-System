@@ -9,12 +9,14 @@
 # O front não está na rede "dados": ele não consegue acessar o banco, só a API.
 # As variáveis vêm do .env (modelo em .env.example). Em produção, troque a senha!
 
-name: ticket-system
+# PROJETO, PREFIXO e VOLUME_BANCO permitem rodar duas cópias lado a lado (ex.: a versão
+# refatorada em teste na porta 3001 sem tocar nos dados da versão atual).
+name: ${PROJETO:-ticket-system}
 
 services:
   db:
     image: postgres:16-alpine
-    container_name: ingressos-db
+    container_name: ${PREFIXO:-ingressos}-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ingressos}
@@ -37,7 +39,7 @@ services:
       context: ./codigo
       target: back
     image: ${IMAGEM_BACK:-ticket-system-back:latest}
-    container_name: ingressos-back
+    container_name: ${PREFIXO:-ingressos}-back
     restart: unless-stopped
     depends_on:
       db:
@@ -59,7 +61,7 @@ services:
       context: ./codigo
       target: front
     image: ${IMAGEM_FRONT:-ticket-system-front:latest}
-    container_name: ingressos-front
+    container_name: ${PREFIXO:-ingressos}-front
     restart: unless-stopped
     depends_on:
       back:
@@ -79,4 +81,4 @@ networks:
 volumes:
   dados-postgres:
     # nome fixo: os dados não dependem do nome da pasta onde o compose está
-    name: ticket-system-dados
+    name: ${VOLUME_BANCO:-ticket-system-dados}

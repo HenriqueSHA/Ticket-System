@@ -16,6 +16,10 @@ chamado a partir de um programa principal.
   quantidade disponível acontecem juntas, como uma única operação.
 - Os assentos de cada setor são organizados como uma **matriz** (fileira × número), percorrida com dois
   laços `PARA` aninhados para gerar e exibir o mapa.
+- Na implementação, o "menu" de cada perfil é a barra de navegação da interface web e cada opção é uma
+  página. O laço do programa principal corresponde ao servidor, que fica atendendo pedidos até ser
+  encerrado. A lógica (decisões, repetições e validações) é a mesma do pseudocódigo, e cada algoritmo
+  tem um método correspondente no código (tabela da seção 12).
 
 ### Convenções do pseudocódigo
 
@@ -34,7 +38,7 @@ chamado a partir de um programa principal.
 ### Constantes
 
 ```
-CONSTANTE DESCONTO_MEIA  ← 0,50      // meia-entrada: 50% de desconto
+CONSTANTE DESCONTO_MEIA  ← 50        // meia-entrada: 50% de desconto (percentual)
 CONSTANTE LIVRE          ← "LIVRE"
 CONSTANTE OCUPADO        ← "OCUPADO"
 ```
@@ -53,7 +57,7 @@ INÍCIO
     CARREGAR dados do banco de dados
     sair ← FALSO
     ENQUANTO sair = FALSO FAÇA
-        ESCREVA "1 - Entrar   2 - Criar conta de cliente   0 - Sair"
+        ESCREVA "1 - Entrar   2 - Criar conta de cliente   3 - Criar conta de organizador   0 - Sair"
         LEIA opcao
         ESCOLHA opcao
             CASO 1:
@@ -80,6 +84,8 @@ INÍCIO
                 FIMSE
             CASO 2:
                 cadastrarCliente()
+            CASO 3:
+                cadastrarOrganizador()          // Algoritmo 9
             CASO 0:
                 sair ← VERDADEIRO
             OUTROCASO:
@@ -94,12 +100,12 @@ FIM
 
 | Cliente | Organizador | SuperAdmin |
 |---|---|---|
-| 1 - Listar eventos disponíveis | 1 - Cadastrar evento | 1 - Cadastrar organizador |
-| 2 - Comprar ingresso (Alg. 4) | 2 - Alterar evento | 2 - Listar organizadores |
+| 1 - Listar eventos disponíveis | 1 - Cadastrar evento (Alg. 3) | 1 - Cadastrar organizador |
+| 2 - Comprar ingresso (Alg. 4) | 2 - Gerenciar evento: dados, categorias, preço, quantidade e capacidade (Alg. 8) | 2 - Listar organizadores |
 | 3 - Meus ingressos / histórico | 3 - Listar meus eventos | 3 - Ativar / bloquear / editar / remover organizador (Alg. 7) |
-| 4 - Cancelar compra (Alg. 5) | 4 - Relatório do evento (Alg. 6) | 0 - Sair |
-| 0 - Sair | 5 - Registrar presença (check-in) | |
-| | 0 - Sair | |
+| 4 - Cancelar compra (Alg. 5) | 4 - Relatório do evento e lista de vendas (Alg. 6) | 0 - Sair |
+| 5 - Trocar assento (Alg. 5b) | 5 - Registrar presença (check-in, Alg. 6) | |
+| 0 - Sair | 0 - Sair | |
 
 ---
 
@@ -492,6 +498,64 @@ FIM
 
 ---
 
+## 8.6b Algoritmo 5b — Remarcar compra (trocar assento)
+
+A remarcação segue as mesmas regras do cancelamento (regra 7.3): a compra é do cliente, está
+confirmada, o evento permite alterações e ainda não ocorreu. O novo assento precisa ser da **mesma
+categoria** e estar livre. O valor pago não muda.
+
+```
+PROCEDIMENTO remarcarCompra(cliente : Usuario)
+DECLARE idVenda, numero : inteiro
+        fileira : texto
+        venda : Venda
+        evento : Evento
+        novo : Assento
+INÍCIO
+    listarVendas(cliente, status ← "CONFIRMADA")
+    ESCREVA "Número da compra a remarcar: "
+    LEIA idVenda
+    venda ← buscarVenda(idVenda)
+
+    SE venda = NULO OU venda.idCliente <> cliente.id ENTÃO
+        ESCREVA "Erro: compra não encontrada."
+        RETORNE
+    FIMSE
+    SE venda.status <> "CONFIRMADA" ENTÃO
+        ESCREVA "Erro: esta compra já foi cancelada ou utilizada."
+        RETORNE
+    FIMSE
+    evento ← eventoDaVenda(venda)
+    SE evento.permiteCancelamento = FALSO OU evento.data <= HOJE() ENTÃO
+        ESCREVA "Erro: este evento não permite remarcar a compra."
+        RETORNE
+    FIMSE
+    SE venda.idAssento = NULO ENTÃO
+        ESCREVA "Erro: esta compra não tem assento marcado para trocar."
+        RETORNE
+    FIMSE
+
+    exibirMapa(categoriaDaVenda(venda))
+    ESCREVA "Nova fileira e número: "
+    LEIA fileira, numero
+    novo ← buscarAssento(categoriaDaVenda(venda), fileira, numero)
+    SE novo = NULO ENTÃO
+        ESCREVA "Erro: assento inexistente."
+    SENÃO SE novo.situacao = OCUPADO ENTÃO
+        ESCREVA "Erro: assento já vendido. Escolha outro."
+    SENÃO
+        INICIAR TRANSAÇÃO
+            novo.situacao ← OCUPADO
+            assentoDaVenda(venda).situacao ← LIVRE
+            venda.idAssento ← novo.id
+        CONFIRMAR TRANSAÇÃO
+        ESCREVA "Assento trocado para ", fileira, numero
+    FIMSE
+FIM
+```
+
+---
+
 ## 8.7 Algoritmo 6 — Relatório do evento e registro de presença (organizador)
 
 ```
@@ -622,16 +686,114 @@ FIM
 
 ---
 
-## 8.9 Relação entre os algoritmos e as estruturas estudadas
+## 8.9 Algoritmo 8 — Gerenciar evento (organizador)
+
+Depois de cadastrado (Alg. 3), o evento pode ser ajustado pelo organizador dono dele. As regras
+garantem que nenhuma alteração contradiga o que já foi vendido.
+
+```
+PROCEDIMENTO gerenciarEvento(org : Organizador)
+DECLARE idEvento, acao, novaQtd, novaCapacidade : inteiro
+        novoPreco : real
+        evento : Evento
+        cat : Categoria
+        somaCategorias : inteiro
+INÍCIO
+    evento ← buscarEvento(idEvento)
+    SE evento = NULO OU evento.idOrganizador <> org.id ENTÃO
+        ESCREVA "Erro: evento não encontrado."
+        RETORNE
+    FIMSE
+    ESCREVA "1 - Alterar dados  2 - Nova categoria  3 - Alterar categoria  4 - Remover categoria  5 - Excluir evento"
+    LEIA acao
+    ESCOLHA acao
+        CASO 1:
+            LEIA nome, local, data, horario, novaCapacidade, status, permiteCancelamento
+            somaCategorias ← 0
+            PARA CADA c EM categoriasDoEvento(evento) FAÇA
+                somaCategorias ← somaCategorias + c.quantidade
+            FIMPARA
+            SE data <= HOJE() ENTÃO
+                ESCREVA "Erro: a data deve ser futura."
+            SENÃO SE novaCapacidade < evento.totalVendido OU novaCapacidade < somaCategorias ENTÃO
+                ESCREVA "Erro: capacidade menor que o já vendido ou que a soma das categorias."
+            SENÃO
+                GRAVAR evento com os novos dados
+            FIMSE
+        CASO 2:
+            LEIA cat                                   // nome, preço, quantidade ou fileiras × assentos
+            SE cat.preco < 0 OU cat.quantidade <= 0 ENTÃO
+                ESCREVA "Erro: preço e quantidade inválidos."
+            SENÃO SE somaQuantidades(evento) + cat.quantidade > evento.capacidade ENTÃO
+                ESCREVA "Erro: a soma das categorias ultrapassa a capacidade."
+            SENÃO
+                GRAVAR cat; SE cat tem assento marcado ENTÃO gerarMatrizAssentos(cat) FIMSE
+            FIMSE
+        CASO 3:
+            LEIA cat, novoPreco, novaQtd
+            vendidos ← cat.quantidade - cat.disponivel
+            SE novoPreco < 0 ENTÃO
+                ESCREVA "Erro: preço negativo."
+            SENÃO SE novaQtd < vendidos ENTÃO
+                ESCREVA "Erro: a quantidade não pode ficar abaixo do já vendido (", vendidos, ")."
+            SENÃO
+                cat.preco ← novoPreco                 // vale para as próximas vendas
+                cat.disponivel ← novaQtd - vendidos
+                cat.quantidade ← novaQtd
+                GRAVAR cat
+            FIMSE
+        CASO 4:
+            SE cat possui vendas ENTÃO ESCREVA "Erro: categoria com vendas." SENÃO REMOVER cat FIMSE
+        CASO 5:
+            SE evento possui vendas ENTÃO ESCREVA "Erro: evento com vendas; encerre-o." SENÃO REMOVER evento FIMSE
+    FIMESCOLHA
+FIM
+```
+
+---
+
+## 8.10 Algoritmo 9 — Criar conta de organizador (autocadastro)
+
+Na Entrega 2 só o SuperAdmin criava organizadores. Na implementação, a própria empresa pode criar a
+conta pela página inicial. O SuperAdmin continua podendo cadastrar, bloquear ou remover (Alg. 7), e
+um organizador bloqueado não entra no sistema (Alg. 1).
+
+```
+PROCEDIMENTO cadastrarOrganizador()
+DECLARE razaoSocial, cnpj, contato, email, senha : texto
+INÍCIO
+    LEIA razaoSocial, cnpj, contato, email, senha
+    SE razaoSocial = "" OU contato = "" ENTÃO
+        ESCREVA "Erro: campos obrigatórios."
+    SENÃO SE validarCNPJ(cnpj) = FALSO ENTÃO           // aceita o CNPJ numérico e o alfanumérico
+        ESCREVA "Erro: CNPJ inválido."
+    SENÃO SE validarEmail(email) = FALSO OU tamanho(senha) < 6 ENTÃO
+        ESCREVA "Erro: e-mail inválido ou senha com menos de 6 caracteres."
+    SENÃO SE existeUsuarioComEmail(email) OU existeOrganizadorComCNPJ(cnpj) ENTÃO
+        ESCREVA "Erro: já existe cadastro com este e-mail ou CNPJ."
+    SENÃO
+        INICIAR TRANSAÇÃO
+            GRAVAR Usuario(perfil ← "ORGANIZADOR", senhaHash ← gerarHash(senha))
+            GRAVAR Organizador(razaoSocial, cnpj, contato, status ← "ATIVO")
+        CONFIRMAR TRANSAÇÃO
+        ESCREVA "Conta criada! Entre com seu e-mail e senha."
+    FIMSE
+FIM
+```
+
+---
+
+## 8.11 Relação entre os algoritmos e as estruturas estudadas
 
 | Estrutura | Onde aparece |
 |---|---|
 | Sequencial | Leitura dos dados e cálculo do valor na compra (Alg. 4) |
-| Condicional simples/composta (`SE`) | Todas as validações das regras 7.3 (Alg. 2 a 7) |
-| Múltipla escolha (`ESCOLHA`) | Menus e direcionamento por perfil (Alg. 1, 7) |
+| Condicional simples/composta (`SE`) | Todas as validações das regras 7.3 (Alg. 2 a 9) |
+| Múltipla escolha (`ESCOLHA`) | Menus e direcionamento por perfil (Alg. 1, 7, 8) |
 | Repetição `ENQUANTO` | Laço do menu principal (Alg. 1), cadastro de várias categorias (Alg. 3), revalidação de entradas (Alg. 4) |
-| Repetição `PARA` | Validação do CPF (Alg. 2), geração e exibição da matriz de assentos (Alg. 3), contadores do relatório (Alg. 6) |
+| Repetição `PARA` | Validação do CPF (Alg. 2), geração e exibição da matriz de assentos (Alg. 3), contadores do relatório (Alg. 6), soma das categorias (Alg. 8) |
 | Vetor | Dígitos do CPF (Alg. 2) |
-| Matriz | Mapa de assentos fileira × número (Alg. 3) |
+| Matriz | Mapa de assentos fileira × número (Alg. 3, 4 e 5b) |
 | Constante | `DESCONTO_MEIA` (Alg. 4) |
-| Contadores e acumuladores | Relatório do evento (Alg. 6) |
+| Contadores e acumuladores | Relatório do evento (Alg. 6), soma das quantidades (Alg. 8) |
+| Transação (tudo ou nada) | Compra (Alg. 4), cancelamento (Alg. 5), remarcação (Alg. 5b), autocadastro (Alg. 9) |

@@ -1,0 +1,17 @@
+  graph [rankdir=TB nodesep=0.5 ranksep=0.45 compound=true]
+  node [shape=box style="rounded,filled" fillcolor="#ffffff" color="#555555"]
+  U [label="Navegador\n(cliente, organizador,\nSuperAdmin)" shape=box fillcolor="#dce9fb" color="#2f5fb3"]
+  subgraph cluster_srv {
+    label="Servidor (docker compose — projeto ticket-system)" fontsize=12 style="rounded,dashed" color="#888888"
+    subgraph cluster_frontal { label="rede frontal" style="rounded,filled" fillcolor="#f3f7fd" color="#9db7e0"
+      FRONT [label="front  (ingressos-web)\nRust · Axum · Askama\nporta 3000 — páginas HTML\ncookie HttpOnly com o token" fillcolor="#e6f0ff" color="#2f5fb3"]
+    }
+    BACK [label="back  (ingressos-api)\nRust · Axum · API REST /api/...\nregras de negócio (domínio + aplicação)\nsem porta pública" fillcolor="#fdebc8" color="#e08a1e"]
+    subgraph cluster_dados { label="rede dados" style="rounded,filled" fillcolor="#f2fbf2" color="#9fd19f"
+      DB [label="db  (PostgreSQL 16)\ntabelas + transações\nvolume ticket-system-dados" shape=cylinder fillcolor="#d9f2d9" color="#2e8b3a"]
+    }
+  }
+  U -> FRONT [label=" HTTP :3000\nformulários"]
+  FRONT -> BACK [label=" HTTP/JSON\nBearer token"]
+  BACK -> DB [label=" SQL (sqlx)\nmigrações"]
+  FRONT -> DB [style=dashed arrowhead=tee color="#c2185b" fontcolor="#c2185b" label=" sem acesso\n(redes isoladas)" constraint=false]

@@ -1,0 +1,51 @@
+  I  [class=term label="Início\ngerenciarEvento(org)"]
+  B  [class=proc label="evento ← buscarEvento(idEvento)"]
+  C0 [class=dec  label="evento existe\nE é do\norganizador?"]
+  E0 [class=io   label="Erro: evento\nnão encontrado"]
+  F0 [class=term label="Fim"]
+  M  [class=io   label="Ler ação"]
+  A  [class=dec  label="ação"]
+
+  D1 [class=io   label="Ler dados,\nnovaCapacidade"]
+  S  [class=proc label="soma ← 0\nPARA CADA categoria:\nsoma ← soma + quantidade"]
+  V1 [class=dec  label="data > hoje E\ncapacidade ≥ vendido\nE ≥ soma?"]
+  G1 [class=proc label="GRAVAR evento"]
+
+  D3 [class=io   label="Ler categoria,\nnovoPreço, novaQtd"]
+  V3 [class=dec  label="preço ≥ 0 E\nnovaQtd ≥ vendidos?"]
+  G3 [class=proc label="preço ← novoPreço\ndisponível ← novaQtd − vendidos\nquantidade ← novaQtd"]
+
+  D2 [class=io   label="Ler nova categoria"]
+  V2 [class=dec  label="soma + qtd\n≤ capacidade?"]
+  G2 [class=proc label="GRAVAR categoria\n(+ matriz de assentos)"]
+
+  V4 [class=dec  label="possui\nvendas?"]
+  G4 [class=proc label="REMOVER categoria\nou evento"]
+
+  ER [class=io   label="Escrever mensagem\nde erro da regra"]
+  OK [class=io   label="Escrever \"Alterado\""]
+  F  [class=term label="Fim"]
+
+  I -> B -> C0
+  C0 -> M  [label=" Sim" weight=10]
+  C0 -> E0 [label="Não"]
+  E0 -> F0
+  {rank=same; C0; E0; F0}
+  M -> A
+  A -> D1 [label="1 dados"]
+  A -> D2 [label="2 nova"]
+  A -> D3 [label="3 alterar"]
+  A -> V4 [label="4/5 remover"]
+  D1 -> S -> V1
+  V1 -> G1 [label=" Sim"]
+  V1 -> ER [label="Não"]
+  D2 -> V2
+  V2 -> G2 [label=" Sim"]
+  V2 -> ER [label="Não"]
+  D3 -> V3
+  V3 -> G3 [label=" Sim"]
+  V3 -> ER [label="Não"]
+  V4 -> G4 [label="Não"]
+  V4 -> ER [label="Sim"]
+  G1 -> OK; G2 -> OK; G3 -> OK; G4 -> OK
+  OK -> F; ER -> F

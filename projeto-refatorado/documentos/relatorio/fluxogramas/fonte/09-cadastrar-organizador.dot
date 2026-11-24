@@ -1,0 +1,22 @@
+  I  [class=term label="Início\ncadastrarOrganizador()"]
+  L  [class=io   label="Ler razão social, CNPJ,\ncontato, e-mail, senha"]
+  C1 [class=dec  label="campos\npreenchidos?"]
+  C2 [class=dec  label="CNPJ válido?\n(numérico ou\nalfanumérico)"]
+  C3 [class=dec  label="e-mail válido E\nsenha ≥ 6?"]
+  C4 [class=dec  label="e-mail ou CNPJ\njá cadastrado?"]
+  ER [class=io   label="Escrever o erro\n(campos preservados)"]
+  TR [class=proc label="TRANSAÇÃO:\nGRAVAR usuário (ORGANIZADOR,\nhash da senha)\nGRAVAR organizador (ATIVO)"]
+  OK [class=io   label="Escrever \"Conta criada!\""]
+  F  [class=term label="Fim"]
+
+  I -> L -> C1
+  C1 -> C2 [label=" Sim" weight=10]
+  C2 -> C3 [label=" Sim" weight=10]
+  C3 -> C4 [label=" Sim" weight=10]
+  C4 -> TR [label=" Não" weight=10]
+  C1 -> ER [label="Não"]
+  C2 -> ER [label="Não"]
+  C3 -> ER [label="Não"]
+  C4 -> ER [label="Sim"]
+  ER -> L  [label=" corrigir"]
+  TR -> OK -> F

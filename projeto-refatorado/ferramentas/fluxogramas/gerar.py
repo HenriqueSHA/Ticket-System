@@ -1,6 +1,6 @@
 """Gera os PNGs dos fluxogramas a partir dos arquivos .dot da pasta fonte/.
 
-Lê documentos/relatorio/fluxogramas/fonte/*.dot e grava os PNGs em documentos/relatorio/fluxogramas/.
+Lê documentos/relatorio/{fluxogramas,diagramas}/fonte/*.dot e grava os PNGs na pasta acima de cada fonte/.
 
 Uso (a partir da raiz A3):
     npm install --prefix ferramentas/fluxogramas   # uma vez só (Graphviz em WebAssembly)
@@ -18,8 +18,8 @@ import subprocess
 import tempfile
 
 PASTA = pathlib.Path(__file__).resolve().parent          # ferramentas/fluxogramas (scripts)
-SAIDA = PASTA.parent.parent / "documentos" / "relatorio" / "fluxogramas"
-FONTE = SAIDA / "fonte"
+RELATORIO = PASTA.parent.parent / "documentos" / "relatorio"
+PASTAS = [RELATORIO / "fluxogramas", RELATORIO / "diagramas"]
 
 CABECALHO = """digraph G {
   graph [rankdir=TB nodesep=0.3 ranksep=0.24 pad=0.15 bgcolor=white fontname="DejaVu Sans"]
@@ -46,8 +46,8 @@ def montar_dot(corpo: str) -> str:
     return CABECALHO + corpo + "\n}\n"
 
 
-for arq in sorted(FONTE.glob("*.dot")):
-    png = SAIDA / (arq.stem + ".png")
+for arq in sorted(p for pasta in PASTAS for p in (pasta / "fonte").glob("*.dot")):
+    png = arq.parent.parent / (arq.stem + ".png")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = pathlib.Path(tmp)
         dot, svg, html, bruto = tmp / "f.dot", tmp / "f.svg", tmp / "f.html", tmp / "bruto.png"
