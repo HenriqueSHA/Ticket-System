@@ -1,4 +1,4 @@
-//! Repositórios PostgreSQL (seção 13 do relatório).
+//! Repositórios `PostgreSQL` (seção 13 do relatório).
 
 mod eventos;
 mod organizadores;
@@ -59,6 +59,7 @@ impl BancoPostgres {
 /// Converte erros do sqlx em erros do domínio. Restrições violadas no banco viram regra de
 /// negócio: UNIQUE (23505 — ex.: assento já vendido), chave estrangeira (23503 — registro com
 /// vendas) e CHECK (23514 — ex.: capacidade menor que o já vendido).
+#[allow(clippy::needless_pass_by_value)] // usado como `.map_err(erro_bd)`
 pub(crate) fn erro_bd(e: sqlx::Error) -> Erro {
     if let sqlx::Error::Database(db) = &e {
         match db.code().as_deref() {

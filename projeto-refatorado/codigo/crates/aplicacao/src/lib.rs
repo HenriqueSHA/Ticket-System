@@ -11,7 +11,7 @@
 //! | [`ServicoAdministracao`]  | 7 (gestão de organizadores)                  |
 //!
 //! Os serviços recebem as dependências por **injeção** (construtor) e só conhecem os
-//! `trait`s do domínio — nunca o PostgreSQL (Inversão de Dependência).
+//! `trait`s do domínio — nunca o `PostgreSQL` (Inversão de Dependência).
 
 mod cadastro_organizador;
 pub mod dados_exemplo;

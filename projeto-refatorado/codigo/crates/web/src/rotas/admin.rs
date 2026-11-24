@@ -1,4 +1,4 @@
-//! Páginas do SuperAdmin: gestão de organizadores (Algoritmo 7).
+//! Páginas do `SuperAdmin`: gestão de organizadores (Algoritmo 7).
 
 use axum::Form;
 use axum::extract::{Path, State};
@@ -135,7 +135,7 @@ pub async fn acao(
             .bloquear(&s, id)
             .await
             .map(|o| format!("\"{}\" bloqueado. Ele não poderá mais acessar o sistema.", o.razao_social())),
-        "remover" => adm.remover(&s, id).await.map(|_| "Organizador removido.".to_string()),
+        "remover" => adm.remover(&s, id).await.map(|()| "Organizador removido.".to_string()),
         _ => Err(Erro::validacao("opção inválida")),
     };
     let aviso = match resultado {

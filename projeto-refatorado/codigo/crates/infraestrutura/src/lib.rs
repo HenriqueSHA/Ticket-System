@@ -1,6 +1,6 @@
 //! # Infraestrutura — implementações concretas das portas do domínio
 //!
-//! - [`postgres`]: repositórios no PostgreSQL (biblioteca sqlx), com transações;
+//! - [`postgres`]: repositórios no `PostgreSQL` (biblioteca sqlx), com transações;
 //! - [`memoria`]: os mesmos repositórios guardando tudo em memória (usado nos testes);
 //! - [`seguranca`]: hash de senha com Argon2;
 //! - [`relogio`]: relógio do sistema e relógio fixo (testes).

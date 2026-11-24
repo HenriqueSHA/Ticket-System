@@ -38,7 +38,7 @@ impl RelatorioEvento {
             }
         }
 
-        let ocupacao = vendidos as f64 / evento.capacidade() as f64 * 100.0;
+        let ocupacao = f64::from(vendidos) / f64::from(evento.capacidade()) * 100.0;
         RelatorioEvento { evento, vendidos, cancelados, presentes, inteiras, meias, receita, ocupacao, categorias }
     }
 

@@ -10,7 +10,9 @@ use dominio::valores::Dinheiro;
 
 use crate::sessao::{Aviso, Sessao};
 
-/// Filtros usados nos templates: `{{ evento.data()|data }}`.
+/// Filtros usados nos templates: `{{ evento.data()|data }}`. O Askama exige que devolvam
+/// `askama::Result`, mesmo quando não falham.
+#[allow(clippy::unnecessary_wraps)]
 mod filters {
     use std::borrow::Borrow;
 

@@ -63,7 +63,8 @@ async fn estilo() -> impl IntoResponse {
     ([(header::CONTENT_TYPE, "text/css; charset=utf-8")], include_str!("../../static/estilo.css"))
 }
 
-/// Gera o HTML da página.
+/// Gera o HTML da página (recebe a página por valor para ser chamada como `render(Pagina { .. })`).
+#[allow(clippy::needless_pass_by_value)]
 pub(crate) fn render<T: Template>(pagina: T) -> Response {
     match pagina.render() {
         Ok(html) => Html(html).into_response(),

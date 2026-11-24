@@ -101,7 +101,7 @@ async fn inserir_categoria(
                 .bind(evento_id)
                 .bind(ingresso_id)
                 .bind(cat.nome())
-                .bind(letra_fileira(f as usize))
+                .bind(letra_fileira(usize::try_from(f).unwrap_or_default()))
                 .bind(n)
                 .execute(&mut **tx)
                 .await

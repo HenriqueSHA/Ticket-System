@@ -43,8 +43,10 @@ pub async fn comprar(
     // fluxograma 4, passo 1: o evento está à venda?
     let evento = tentar!(app.vendas.evento_para_venda(id).await, s, "/eventos");
     let categorias = tentar!(app.eventos.categorias(id).await, s, "/eventos");
-    let escolhida =
-        escolha.categoria.or_else(|| categorias.iter().find(|c| !c.esgotado()).map(|c| c.id())).unwrap_or_default();
+    let escolhida = escolha
+        .categoria
+        .or_else(|| categorias.iter().find(|c| !c.esgotado()).map(contrato::Ingresso::id))
+        .unwrap_or_default();
     // passo 2: a categoria existe e tem ingressos?
     let voltar = format!("/eventos/{id}");
     let ingresso = tentar!(app.vendas.ingresso_para_venda(&evento, escolhida).await, s, voltar);

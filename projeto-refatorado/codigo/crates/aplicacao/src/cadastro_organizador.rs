@@ -1,5 +1,5 @@
 //! Cadastro de empresa organizadora, usado em dois lugares:
-//! pela própria empresa (tela pública "Criar conta de organizador") e pelo SuperAdmin.
+//! pela própria empresa (tela pública "Criar conta de organizador") e pelo `SuperAdmin`.
 
 use dominio::Resultado;
 use dominio::entidades::{NovoOrganizador, Organizador};
@@ -19,7 +19,7 @@ pub struct CadastroOrganizador {
 }
 
 /// Valida (obrigatórios → CNPJ → e-mail → senha → unicidade) e grava login + organizador.
-/// O organizador já começa ATIVO; o SuperAdmin pode bloqueá-lo depois.
+/// O organizador já começa ATIVO; o `SuperAdmin` pode bloqueá-lo depois.
 pub(crate) async fn registrar(
     usuarios: &dyn RepositorioUsuarios,
     organizadores: &dyn RepositorioOrganizadores,

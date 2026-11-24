@@ -6,7 +6,7 @@ use crate::{Erro, Resultado};
 
 /// Remove pontuação: "529.982.247-25" -> "52998224725".
 pub fn somente_digitos(texto: &str) -> String {
-    texto.chars().filter(|c| c.is_ascii_digit()).collect()
+    texto.chars().filter(char::is_ascii_digit).collect()
 }
 
 /// Converte o texto em vetor de dígitos se tiver exatamente `tamanho` dígitos
@@ -46,7 +46,8 @@ impl Cpf {
         }
         // dígito = (soma dos dígitos × pesos decrescentes) × 10 mod 11; 10 vira 0
         let digito = |n: usize| {
-            let soma: u32 = (0..n).map(|i| d[i] * (n as u32 + 1 - i as u32)).sum();
+            // pesos n+1, n, ..., 2 da esquerda para a direita = 2, 3, ... lendo de trás para frente
+            let soma: u32 = d[..n].iter().rev().zip(2u32..).map(|(digito, peso)| digito * peso).sum();
             let resto = (soma * 10) % 11;
             if resto == 10 { 0 } else { resto }
         };

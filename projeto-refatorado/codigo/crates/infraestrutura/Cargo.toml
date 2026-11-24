@@ -12,3 +12,6 @@ chrono.workspace = true
 tokio.workspace = true
 argon2 = "0.5"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "migrate", "macros"] }
+
+[lints]
+workspace = true

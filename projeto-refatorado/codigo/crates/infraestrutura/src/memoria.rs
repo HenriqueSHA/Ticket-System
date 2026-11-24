@@ -1,6 +1,6 @@
 //! Repositórios em memória (listas protegidas por `Mutex`).
 //!
-//! Implementam exatamente os mesmos `trait`s e regras dos repositórios PostgreSQL
+//! Implementam exatamente os mesmos `trait`s e regras dos repositórios `PostgreSQL`
 //! (unicidade, operações atômicas), por isso podem substituí-los nos testes automatizados
 //! — Princípio da Substituição de Liskov.
 
@@ -61,7 +61,7 @@ impl Tabelas {
             for f in 0..s.fileiras {
                 for n in 1..=s.assentos_por_fileira {
                     let id = self.novo_id();
-                    let fileira = letra_fileira(f as usize);
+                    let fileira = letra_fileira(usize::try_from(f).unwrap_or_default());
                     self.assentos.push(Assento::reconstruir(
                         id,
                         ingresso.id(),
@@ -133,7 +133,7 @@ impl RepositorioUsuarios for RepositoriosMemoria {
         Ok(self.t().usuarios.iter().find(|u| u.documento() == documento).cloned())
     }
     async fn contar(&self) -> Resultado<i64> {
-        Ok(self.t().usuarios.len() as i64)
+        Ok(i64::try_from(self.t().usuarios.len()).unwrap_or(i64::MAX))
     }
 }
 
@@ -221,7 +221,7 @@ impl RepositorioEventos for RepositoriosMemoria {
         lista.sort_by_key(|e| (e.data(), e.horario()));
         Ok(lista)
     }
-    /// Como o UPDATE do PostgreSQL: grava dados, capacidade e status, mas o total vendido
+    /// Como o UPDATE do `PostgreSQL`: grava dados, capacidade e status, mas o total vendido
     /// continua o atual (pode ter havido vendas desde que o evento foi lido).
     async fn atualizar(&self, evento: &Evento) -> Resultado<()> {
         let mut t = self.t();
@@ -462,7 +462,7 @@ mod testes {
         NaiveDate::from_ymd_opt(2026, 11, 21).unwrap().and_hms_opt(12, 0, 0).unwrap()
     }
 
-    /// Mesmo comportamento do UPDATE do PostgreSQL: atualizar o evento com uma cópia lida antes
+    /// Mesmo comportamento do UPDATE do `PostgreSQL`: atualizar o evento com uma cópia lida antes
     /// de uma venda não pode apagar essa venda do total vendido.
     #[tokio::test]
     async fn atualizar_evento_preserva_total_vendido() {

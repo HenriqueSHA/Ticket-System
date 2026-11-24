@@ -10,3 +10,6 @@ dominio.workspace = true
 aplicacao.workspace = true
 chrono.workspace = true
 serde.workspace = true
+
+[lints]
+workspace = true

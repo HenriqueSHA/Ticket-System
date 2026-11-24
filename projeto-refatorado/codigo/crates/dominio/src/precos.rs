@@ -7,7 +7,7 @@
 use crate::valores::Dinheiro;
 
 /// Meia-entrada: 50% de desconto (constante do Algoritmo 4).
-pub const DESCONTO_MEIA: f64 = 0.50;
+pub const DESCONTO_MEIA: i64 = 50;
 
 pub trait PoliticaPreco {
     fn calcular(&self, preco: Dinheiro) -> Dinheiro;

@@ -90,14 +90,14 @@ impl ArmazemSessoes {
     /// Guarda a sessão no cache e o token (emitido pelo back) no cookie.
     pub fn abrir(&self, jar: CookieJar, sessao: Sessao) -> CookieJar {
         let token = sessao.token.clone();
-        self.lembrar(&sessao);
+        self.lembrar(sessao);
         jar.add(self.cookie(COOKIE_SESSAO, token))
     }
 
-    fn lembrar(&self, sessao: &Sessao) {
+    fn lembrar(&self, sessao: Sessao) {
         let mut sessoes = self.sessoes.write().expect("sessões");
         sessoes.retain(|_, (_, inicio)| inicio.elapsed() < DURACAO_SESSAO);
-        sessoes.insert(sessao.token.clone(), (sessao.clone(), Instant::now()));
+        sessoes.insert(sessao.token.clone(), (sessao, Instant::now()));
     }
 
     pub fn fechar(&self, jar: CookieJar) -> CookieJar {
@@ -153,7 +153,7 @@ impl FromRequestParts<Estado> for Logado {
         if let Some(token) = jar.get(COOKIE_SESSAO).map(|c| c.value().to_string())
             && let Ok(sessao) = estado.back.autenticacao.sessao(&token).await
         {
-            estado.sessoes.lembrar(&sessao);
+            estado.sessoes.lembrar(sessao.clone());
             return Ok(Logado(sessao));
         }
         Err(Redirect::to("/entrar").into_response())

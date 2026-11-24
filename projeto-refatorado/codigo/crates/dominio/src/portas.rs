@@ -2,9 +2,9 @@
 //! fora daqui (na infraestrutura).
 //!
 //! Princípios SOLID aplicados:
-//! - **Inversão de Dependência (D)**: os casos de uso dependem destes `trait`s, nunca do PostgreSQL;
+//! - **Inversão de Dependência (D)**: os casos de uso dependem destes `trait`s, nunca do `PostgreSQL`;
 //! - **Segregação de Interface (I)**: um repositório por agregado, cada um só com o que precisa;
-//! - **Substituição de Liskov (L)**: qualquer implementação (PostgreSQL ou em memória, nos testes)
+//! - **Substituição de Liskov (L)**: qualquer implementação (`PostgreSQL` ou em memória, nos testes)
 //!   pode ser usada no lugar da outra sem mudar o comportamento esperado.
 
 use async_trait::async_trait;

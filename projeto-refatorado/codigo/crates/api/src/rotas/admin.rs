@@ -1,4 +1,4 @@
-//! Rotas do SuperAdmin: gestão de organizadores (Algoritmo 7).
+//! Rotas do `SuperAdmin`: gestão de organizadores (Algoritmo 7).
 
 use axum::Json;
 use axum::extract::{Path, State};

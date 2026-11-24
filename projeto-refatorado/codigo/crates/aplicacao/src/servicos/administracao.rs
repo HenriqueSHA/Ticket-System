@@ -8,7 +8,7 @@ use crate::cadastro_organizador::{self, CadastroOrganizador};
 use crate::fabrica::FabricaUsuarios;
 use crate::sessao::Sessao;
 
-/// Algoritmo 7 — funções exclusivas do SuperAdmin.
+/// Algoritmo 7 — funções exclusivas do `SuperAdmin`.
 pub struct ServicoAdministracao {
     usuarios: Arc<dyn RepositorioUsuarios>,
     organizadores: Arc<dyn RepositorioOrganizadores>,

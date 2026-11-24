@@ -67,6 +67,7 @@ impl Usuario {
         Usuario { id, nome, documento, email, perfil, senha_hash }
     }
 
+    #[must_use]
     pub fn com_id(mut self, id: i64) -> Self {
         self.id = id;
         self

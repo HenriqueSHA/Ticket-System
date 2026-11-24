@@ -68,14 +68,17 @@ impl Assento {
 
 /// Converte o índice da fileira (0, 1, 2...) na letra ("A", "B", "C"...).
 pub fn letra_fileira(indice: usize) -> String {
-    char::from(b'A' + indice as u8).to_string()
+    match u8::try_from(indice) {
+        Ok(i) if i < 26 => char::from(b'A' + i).to_string(),
+        _ => "?".to_string(),
+    }
 }
 
 /// Converte a letra da fileira no índice (0 = "A"). Aceita minúscula.
 pub fn indice_fileira(letra: &str) -> Option<usize> {
     let mut chars = letra.trim().chars();
     match (chars.next(), chars.next()) {
-        (Some(c), None) if c.is_ascii_alphabetic() => Some((c.to_ascii_uppercase() as u8 - b'A') as usize),
+        (Some(c), None) if c.is_ascii_alphabetic() => Some(usize::from(c.to_ascii_uppercase() as u8 - b'A')),
         _ => None,
     }
 }
@@ -105,14 +108,13 @@ impl MapaAssentos {
     /// Monta a matriz a partir da categoria e da lista de assentos gravada.
     pub fn montar(ingresso: &Ingresso, assentos: &[Assento]) -> Self {
         let (fileiras, por_fileira) =
-            ingresso.setor().map_or((0, 0), |s| (s.fileiras as usize, s.assentos_por_fileira as usize));
+            ingresso.setor().map_or((0, 0), |s| (tamanho(s.fileiras), tamanho(s.assentos_por_fileira)));
         let mut matriz = vec![vec![Situacao::Livre; por_fileira]; fileiras];
         for a in assentos {
-            if let Some(f) = indice_fileira(a.fileira()) {
-                let n = (a.numero() - 1) as usize;
-                if f < fileiras && n < por_fileira {
-                    matriz[f][n] = a.situacao();
-                }
+            if let Some(f) = indice_fileira(a.fileira()).filter(|f| *f < fileiras)
+                && let Some(n) = usize::try_from(a.numero() - 1).ok().filter(|n| *n < por_fileira)
+            {
+                matriz[f][n] = a.situacao();
             }
         }
         MapaAssentos { setor: ingresso.categoria().to_string(), matriz }
@@ -136,7 +138,7 @@ impl MapaAssentos {
 
     /// Números das colunas (1..=assentos por fileira), para o cabeçalho do mapa.
     pub fn numeros(&self) -> Vec<i32> {
-        (1..=self.matriz.first().map_or(0, Vec::len) as i32).collect()
+        (1..=self.matriz.first().map_or(0, Vec::len)).map(numero_i32).collect()
     }
 
     /// Percorre a matriz com dois laços aninhados (fileiras × números) — Algoritmo "exibir mapa".
@@ -147,7 +149,7 @@ impl MapaAssentos {
             let mut assentos = Vec::new();
             for (n, situacao) in fileira.iter().enumerate() {
                 assentos.push(CelulaMapa {
-                    numero: n as i32 + 1,
+                    numero: numero_i32(n + 1),
                     rotulo: format!("{letra}{}", n + 1),
                     ocupado: *situacao == Situacao::Ocupado,
                 });
@@ -156,6 +158,16 @@ impl MapaAssentos {
         }
         linhas
     }
+}
+
+/// Quantidade (i32 do banco) como tamanho de vetor; negativos viram 0.
+fn tamanho(n: i32) -> usize {
+    usize::try_from(n).unwrap_or(0)
+}
+
+/// Número do assento para exibição (o mapa tem no máximo 26 × 50 posições).
+fn numero_i32(n: usize) -> i32 {
+    i32::try_from(n).unwrap_or(i32::MAX)
 }
 
 #[cfg(test)]

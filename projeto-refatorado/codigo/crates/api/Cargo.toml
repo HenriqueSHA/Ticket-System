@@ -24,3 +24,6 @@ uuid = { version = "1", features = ["v4"] }
 [dev-dependencies]
 reqwest = { version = "0.12", default-features = false, features = ["json"] }
 serde_json = "1"
+
+[lints]
+workspace = true

@@ -1,7 +1,7 @@
 //! Testes de cenário (seção 15 do relatório): normal, alternativo e excepcional.
 //!
 //! Usam os repositórios **em memória** e um relógio fixo em 21/11/2026 12:00, então não
-//! precisam do PostgreSQL e dão sempre o mesmo resultado. Os dados de partida são os de
+//! precisam do `PostgreSQL` e dão sempre o mesmo resultado. Os dados de partida são os de
 //! demonstração (`dados_exemplo`):
 //!   - "Show de Rock" (+20 dias, permite cancelamento): Pista R$120 (sem assento),
 //!     Cadeira R$180 (5×8), Camarote R$350 (2×10)
@@ -580,7 +580,7 @@ async fn email_unico_entre_perfis_e_cnpj_alfanumerico() {
     assert!(c.login("produtora@nova.com", "123456").await.organizador_id.is_some());
 }
 
-/// Servidor sem dados de demonstração: só o SuperAdmin informado é criado, e só com banco vazio.
+/// Servidor sem dados de demonstração: só o `SuperAdmin` informado é criado, e só com banco vazio.
 #[tokio::test]
 async fn superadmin_de_producao() {
     let repos = RepositoriosMemoria::novo();

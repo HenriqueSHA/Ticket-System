@@ -24,3 +24,13 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "signa
 opt-level = 3
 [profile.dev.package.blake2]
 opt-level = 3
+
+# Padrão de qualidade: clippy "pedantic" em todo o workspace (o CI roda com -D warnings).
+# Ficam de fora só as regras de documentação formal e de atributos que não ajudam a leitura.
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+must_use_candidate = "allow"
+module_name_repetitions = "allow"
+wildcard_imports = "allow"

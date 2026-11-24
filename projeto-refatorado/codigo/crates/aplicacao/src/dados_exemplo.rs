@@ -27,7 +27,7 @@ fn hora(h: u32) -> NaiveTime {
     NaiveTime::from_hms_opt(h, 0, 0).expect("horário fixo válido")
 }
 
-/// Em produção (sem dados de demonstração): cria só o SuperAdmin informado, se o banco estiver
+/// Em produção (sem dados de demonstração): cria só o `SuperAdmin` informado, se o banco estiver
 /// vazio. Devolve `true` se criou.
 pub async fn criar_superadmin_se_vazio(
     app: &Aplicacao,
@@ -45,6 +45,7 @@ pub async fn criar_superadmin_se_vazio(
 }
 
 /// Popula o banco se não houver nenhum usuário. Devolve `true` se populou.
+#[allow(clippy::too_many_lines)] // roteiro linear dos dados de demonstração
 pub async fn popular_se_vazio(app: &Aplicacao) -> Resultado<bool> {
     if app.usuarios.contar().await? > 0 {
         return Ok(false);

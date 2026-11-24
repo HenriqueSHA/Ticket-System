@@ -1,7 +1,7 @@
-//! Teste de integração com o **PostgreSQL real**.
+//! Teste de integração com o **`PostgreSQL` real**.
 //!
 //! Cria um banco temporário, aplica as migrações, roda os cenários principais pelos
-//! repositórios PostgreSQL e apaga o banco no final. Precisa do container rodando
+//! repositórios `PostgreSQL` e apaga o banco no final. Precisa do container rodando
 //! (`docker compose up -d`), por isso só executa com:
 //!
 //! ```bash

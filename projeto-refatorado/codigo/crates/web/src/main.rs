@@ -45,7 +45,7 @@ async fn encerramento() {
     #[cfg(not(unix))]
     let termino = std::future::pending::<()>();
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = termino => {},
+        () = ctrl_c => {},
+        () = termino => {},
     }
 }

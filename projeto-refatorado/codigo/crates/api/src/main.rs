@@ -1,5 +1,5 @@
 //! Ponto de entrada do **back** (*composition root*): o único lugar que conhece as
-//! implementações concretas. Cria o PostgreSQL, o Argon2 e o relógio, injeta tudo na
+//! implementações concretas. Cria o `PostgreSQL`, o Argon2 e o relógio, injeta tudo na
 //! `Aplicacao` e publica a API.
 
 use std::sync::Arc;
@@ -59,7 +59,7 @@ async fn main() {
 }
 
 /// Banco vazio: com `DADOS_DEMONSTRACAO=true` (padrão, desenvolvimento) cria os usuários e eventos
-/// de exemplo; com `false` (produção) cria só o SuperAdmin de `ADMIN_NOME/ADMIN_CPF/ADMIN_EMAIL/ADMIN_SENHA`
+/// de exemplo; com `false` (produção) cria só o `SuperAdmin` de `ADMIN_NOME/ADMIN_CPF/ADMIN_EMAIL/ADMIN_SENHA`
 /// — assim o servidor nunca fica com senhas de demonstração conhecidas.
 async fn preparar_dados_iniciais(app: &Aplicacao) {
     let var = |nome: &str| std::env::var(nome).unwrap_or_default();
@@ -109,7 +109,7 @@ async fn encerramento() {
     #[cfg(not(unix))]
     let termino = std::future::pending::<()>();
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = termino => {},
+        () = ctrl_c => {},
+        () = termino => {},
     }
 }
