@@ -1,5 +1,7 @@
 # Roteiro da apresentação — 30/11/2026 (Equipe 11)
 
+Slides: https://claude.ai/artifact/4b5pCjirFK86UyD13tAbNa (fonte em `slides/`; exportável em PDF/PPTX pelo menu Share › Export).
+
 Tempo sugerido: **12 minutos** de apresentação + perguntas. Divisão sugerida (a equipe pode trocar).
 
 | Tempo | Quem | Slide | O que falar |

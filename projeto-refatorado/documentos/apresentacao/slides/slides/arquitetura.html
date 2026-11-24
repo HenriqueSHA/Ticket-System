@@ -1,0 +1,12 @@
+<section id="arquitetura">
+<p class="olho">Arquitetura e persistência</p>
+<div class="linha">
+<img class="tela" src="/_blob/64287be9e4432d5fc3edc84cec2ddcc5" alt="Diagrama: navegador, front, back e banco PostgreSQL em redes separadas" style="width:720px; height:824px; --i:0">
+<div class="col">
+<h2>Três contêineres e um banco que também protege as regras</h2>
+<p>Front (páginas) → Back (API e regras) → PostgreSQL. O front não alcança o banco.</p>
+<p><b>Contra venda duplicada:</b> verificação no algoritmo, <b>UPDATE … WHERE situacao = 'LIVRE'</b> dentro da transação e índice único no banco.</p>
+</div>
+</div>
+<aside>Seção 13: tabelas, SQL com parâmetros (sem injeção de SQL), transações. Rust, Axum, SQLx, Docker Compose.</aside>
+</section>
