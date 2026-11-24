@@ -107,6 +107,9 @@ FIM
 | 5 - Trocar assento (Alg. 5b) | 5 - Registrar presença (check-in, Alg. 6) | |
 | 0 - Sair | 0 - Sair | |
 
+
+![Fluxograma do programa principal (login e menu por perfil)](../fluxogramas/01-programa-principal.png)
+
 ---
 
 ## 8.3 Algoritmo 2 — Cadastrar cliente (com validação de CPF)
@@ -190,6 +193,9 @@ INÍCIO
     RETORNE (dv1 = d[10]) E (dv2 = d[11])
 FIM
 ```
+
+
+![Fluxograma da função validarCPF (dígitos verificadores)](../fluxogramas/02-validar-cpf.png)
 
 ---
 
@@ -335,6 +341,13 @@ B  [ ][ ][X][X][ ]
 C  [ ][ ][ ][ ][ ]
 ```
 
+
+![Fluxograma de cadastro de evento — Parte 1: dados do evento](../fluxogramas/03a-cadastrar-evento-parte1.png)
+
+![Fluxograma de cadastro de evento — Parte 2: categorias de ingresso](../fluxogramas/03b-cadastrar-evento-parte2.png)
+
+![Fluxograma da exibição do mapa de assentos (matriz)](../fluxogramas/07-mapa-assentos.png)
+
 ---
 
 ## 8.5 Algoritmo 4 — Comprar ingresso (cliente)
@@ -446,6 +459,11 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma de compra de ingresso — Parte 1: evento, categoria e tipo](../fluxogramas/04a-comprar-ingresso-parte1.png)
+
+![Fluxograma de compra de ingresso — Parte 2: assento, pagamento e registro](../fluxogramas/04b-comprar-ingresso-parte2.png)
+
 ---
 
 ## 8.6 Algoritmo 5 — Cancelar compra (cliente)
@@ -496,9 +514,12 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma de cancelamento de compra](../fluxogramas/05-cancelar-compra.png)
+
 ---
 
-## 8.6b Algoritmo 5b — Remarcar compra (trocar assento)
+## 8.7 Algoritmo 5b — Remarcar compra (trocar assento)
 
 A remarcação segue as mesmas regras do cancelamento (regra 7.3): a compra é do cliente, está
 confirmada, o evento permite alterações e ainda não ocorreu. O novo assento precisa ser da **mesma
@@ -554,9 +575,12 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma de remarcação de compra (troca de assento)](../fluxogramas/05b-remarcar-compra.png)
+
 ---
 
-## 8.7 Algoritmo 6 — Relatório do evento e registro de presença (organizador)
+## 8.8 Algoritmo 6 — Relatório do evento e registro de presença (organizador)
 
 ```
 PROCEDIMENTO relatorioEvento(organizador : Organizador)
@@ -626,9 +650,12 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma do relatório do evento](../fluxogramas/06-relatorio-evento.png)
+
 ---
 
-## 8.8 Algoritmo 7 — Gerenciar organizadores (SuperAdmin)
+## 8.9 Algoritmo 7 — Gerenciar organizadores (SuperAdmin)
 
 ```
 PROCEDIMENTO gerenciarOrganizador()
@@ -686,7 +713,7 @@ FIM
 
 ---
 
-## 8.9 Algoritmo 8 — Gerenciar evento (organizador)
+## 8.10 Algoritmo 8 — Gerenciar evento (organizador)
 
 Depois de cadastrado (Alg. 3), o evento pode ser ajustado pelo organizador dono dele. As regras
 garantem que nenhuma alteração contradiga o que já foi vendido.
@@ -750,9 +777,12 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma de gestão do evento pelo organizador](../fluxogramas/08-gerenciar-evento.png)
+
 ---
 
-## 8.10 Algoritmo 9 — Criar conta de organizador (autocadastro)
+## 8.11 Algoritmo 9 — Criar conta de organizador (autocadastro)
 
 Na Entrega 2 só o SuperAdmin criava organizadores. Na implementação, a própria empresa pode criar a
 conta pela página inicial. O SuperAdmin continua podendo cadastrar, bloquear ou remover (Alg. 7), e
@@ -781,9 +811,12 @@ INÍCIO
 FIM
 ```
 
+
+![Fluxograma do autocadastro de organizador](../fluxogramas/09-cadastrar-organizador.png)
+
 ---
 
-## 8.11 Relação entre os algoritmos e as estruturas estudadas
+## 8.12 Relação entre os algoritmos e as estruturas estudadas
 
 | Estrutura | Onde aparece |
 |---|---|

@@ -1,0 +1,84 @@
+# CI da versão refatorada (pasta projeto-refatorado/), para comparar com a versão atual.
+# Mesmas verificações do ci-cd.yml, sem publicar imagens nem fazer deploy.
+
+name: CI (projeto refatorado)
+
+on:
+  push:
+    paths: ["projeto-refatorado/**", ".github/workflows/ci-refatorado.yml"]
+  pull_request:
+    paths: ["projeto-refatorado/**", ".github/workflows/ci-refatorado.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: projeto-refatorado/codigo
+
+jobs:
+  qualidade:
+    name: Formatação, clippy pedantic e testes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: projeto-refatorado/codigo
+      - name: Formatação (cargo fmt)
+        run: cargo fmt --all --check
+      - name: Boas práticas (clippy pedantic, avisos viram erro)
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Testes (domínio, cenários, API e ponta a ponta)
+        run: cargo test
+
+  postgres:
+    name: Testes no PostgreSQL
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ingressos
+          POSTGRES_PASSWORD: ingressos
+          POSTGRES_DB: ingressos
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ingressos"
+          --health-interval 2s --health-timeout 3s --health-retries 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: projeto-refatorado/codigo
+      - name: Testes de integração (repositórios PostgreSQL + migrações)
+        env:
+          TESTE_POSTGRES: postgres://ingressos:ingressos@localhost:5433
+        run: cargo test -p aplicacao --test postgres -- --ignored
+
+  imagens:
+    name: Build das imagens Docker (sem publicar)
+    needs: [qualidade, postgres]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        servico: [back, front]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: projeto-refatorado/codigo
+          target: ${{ matrix.servico }}
+          push: false
+          cache-from: type=gha,scope=refatorado-${{ matrix.servico }}
+          cache-to: type=gha,mode=max,scope=refatorado-${{ matrix.servico }}

@@ -1,9 +1,11 @@
-"""Monta o relatório da Entrega 3 a partir do docx da Entrega 2.
+"""Monta o relatório final (seções 1 a 20) no modelo do professor.
 
-- Copia o documento da Entrega 2 (o original não é alterado).
-- Atualiza a tabela 7.2 com os atributos que o algoritmo passou a usar.
-- Substitui o texto-modelo da seção 8 pelo conteúdo de documentos/relatorio/secoes/08-algoritmo.md
-  e insere os fluxogramas de documentos/relatorio/fluxogramas/*.png.
+- Parte do docx da Entrega 2 (o original não é alterado), que já tem as seções 1 a 7 e os títulos
+  de 8 a 20 com o texto-modelo.
+- Atualiza a tabela 7.2 e as regras da seção 7 que mudaram na implementação.
+- Troca o texto-modelo de cada seção 8 a 20 pelo conteúdo de documentos/relatorio/secoes/NN-*.md.
+  Imagens em Markdown (![legenda](caminho.png)) viram figuras numeradas; as muito largas são
+  giradas para caber melhor na página.
 
 Uso: python3 ferramentas/montar_relatorio.py   (precisa de Pillow: pip install pillow)
 """
@@ -19,22 +21,21 @@ from PIL import Image
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 RELATORIO = RAIZ / "documentos" / "relatorio"
 ORIGEM = RAIZ / "documentos" / "entregues" / "Equipe 11 - Entrega 2 - Modelagem da Solução.docx"
-DESTINO = RELATORIO / "saida" / "Equipe 11 - Entrega 3 - Projeto do Algoritmo.docx"
-PSEUDO = RELATORIO / "secoes" / "08-algoritmo.md"
-FLUXOS = RELATORIO / "fluxogramas"
-
-# Fluxogramas inseridos no fim de cada subseção (chave = número da subseção).
-FIGURAS = {
-    "8.2": [("01-programa-principal", "Fluxograma do programa principal (login e menu por perfil)")],
-    "8.3": [("02-validar-cpf", "Fluxograma da função validarCPF (dígitos verificadores)")],
-    "8.4": [("03a-cadastrar-evento-parte1", "Fluxograma de cadastro de evento — Parte 1: dados do evento"),
-            ("03b-cadastrar-evento-parte2", "Fluxograma de cadastro de evento — Parte 2: categorias de ingresso"),
-            ("07-mapa-assentos", "Fluxograma da exibição do mapa de assentos (matriz)")],
-    "8.5": [("04a-comprar-ingresso-parte1", "Fluxograma de compra de ingresso — Parte 1: evento, categoria e tipo"),
-            ("04b-comprar-ingresso-parte2", "Fluxograma de compra de ingresso — Parte 2: assento, pagamento e registro")],
-    "8.6": [("05-cancelar-compra", "Fluxograma de cancelamento de compra")],
-    "8.7": [("06-relatorio-evento", "Fluxograma do relatório do evento")],
+DESTINO = RELATORIO / "saida" / "Equipe 11 - Relatório Final (Entregas 3, 4 e 5).docx"
+SECOES = RELATORIO / "secoes"
+TITULOS = {
+    8: "8. Algoritmo proposto", 9: "9. Estruturas de dados utilizadas", 10: "10. Organização do programa e POO",
+    11: "11. Tecnologias utilizadas", 12: "12. Implementação", 13: "13. Persistência e armazenamento de dados",
+    14: "14. Tratamento de erros e exceções", 15: "15. Testes realizados", 16: "16. Resultados e análise",
+    17: "17. Limitações", 18: "18. Possíveis melhorias", 19: "19. Conclusão", 20: "20. Referências",
 }
+
+# Textos das seções 1 a 7 que mudaram com a implementação: (texto antigo, texto novo)
+AJUSTES_TEXTO = [
+    ("Apenas o SuperAdmin pode gerenciar (ativar, bloquear ou remover) organizadores.",
+     "Organizadores podem criar a própria conta (autocadastro); apenas o SuperAdmin pode ativar, "
+     "bloquear, editar ou remover organizadores."),
+]
 
 # Tabela 7.2: (texto antigo da célula, texto novo)
 TABELA_72 = [
@@ -156,10 +157,24 @@ def tabela(linhas: list[list[str]]) -> str:
     return "".join(xml) + '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>'
 
 
+MAX_W, MAX_H = 6.5 * 914400, 8.1 * 914400
+
+
+def preparar_imagem(origem: pathlib.Path, destino: pathlib.Path) -> None:
+    """Copia a imagem; se ela ficar maior girada (diagrama muito largo), grava girada 90°."""
+    img = Image.open(origem)
+    w, h = img.size
+    normal = min(MAX_W / w, MAX_H / h)
+    girada = min(MAX_W / h, MAX_H / w)
+    if w > h and girada > normal * 1.15:
+        img.rotate(90, expand=True).save(destino)
+    else:
+        shutil.copy(origem, destino)
+
+
 def figura(rid: str, num: int, png: pathlib.Path, legenda: str) -> str:
     w_px, h_px = Image.open(png).size
-    max_w, max_h = 6.5 * 914400, 8.1 * 914400
-    escala = min(max_w / w_px, max_h / h_px)
+    escala = min(MAX_W / w_px, MAX_H / h_px)
     cx, cy = round(w_px * escala), round(h_px * escala)
     imagem = (
         f'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0">'
@@ -178,25 +193,21 @@ def figura(rid: str, num: int, png: pathlib.Path, legenda: str) -> str:
             f'{runs(f"**Figura {num}** – {legenda}", 20)}</w:p>')
 
 
-def converter_markdown(md: str, figuras_xml: dict[str, str]) -> str:
-    """Converte o pseudocodigo.md (subconjunto de Markdown) em XML do Word."""
-    blocos, secao = [], None
+def converter_markdown(md: str, pasta_md: pathlib.Path, nova_figura) -> str:
+    """Converte um arquivo de seção (subconjunto de Markdown) em XML do Word."""
+    blocos = []
     linhas = md.splitlines()
     i = 0
-
-    def fechar_secao():
-        if secao in figuras_xml:
-            blocos.append(figuras_xml[secao])
-
     while i < len(linhas):
         linha = linhas[i]
-        if linha.startswith("# "):            # título da seção 8 já existe no documento
+        imagem = re.fullmatch(r"!\[(.+)\]\((.+\.png)\)", linha.strip())
+        if linha.startswith("# "):            # o título da seção já existe no documento
+            i += 1
+        elif imagem:
+            blocos.append(nova_figura((pasta_md / imagem.group(2)).resolve(), imagem.group(1)))
             i += 1
         elif linha.startswith("## "):
-            fechar_secao()
-            titulo = linha[3:].strip()
-            secao = titulo.split()[0]
-            blocos.append(subtitulo(titulo))
+            blocos.append(subtitulo(linha[3:].strip()))
             i += 1
         elif linha.startswith("### "):
             blocos.append(subtitulo_menor(linha[4:].strip()))
@@ -228,11 +239,10 @@ def converter_markdown(md: str, figuras_xml: dict[str, str]) -> str:
         else:
             texto = [linha.strip()]
             i += 1
-            while i < len(linhas) and linhas[i].strip() and not re.match(r"(#|```|\||- |---)", linhas[i]):
+            while i < len(linhas) and linhas[i].strip() and not re.match(r"(#|```|\||- |---|!\[)", linhas[i]):
                 texto.append(linhas[i].strip())
                 i += 1
             blocos.append(paragrafo(" ".join(texto)))
-    fechar_secao()
     return "".join(blocos)
 
 
@@ -244,46 +254,53 @@ def main():
         doc_path = pasta / "word" / "document.xml"
         doc = doc_path.read_text(encoding="utf-8")
 
-        # ---- 1. tabela 7.2 ----
-        for antigo, novo in TABELA_72:
+        # ---- 1. seções 1 a 7: tabela 7.2 e regras que mudaram ----
+        for antigo, novo in TABELA_72 + AJUSTES_TEXTO:
             assert doc.count(antigo) == 1, f"não encontrei (ou achei repetido): {antigo}"
             doc = doc.replace(antigo, novo)
 
-        # ---- 2. imagens: arquivos, relacionamentos e tipo de conteúdo ----
+        # ---- 2. figuras: arquivo, relacionamento e numeração única ----
         (pasta / "word" / "media").mkdir(exist_ok=True)
         rels_path = pasta / "word" / "_rels" / "document.xml.rels"
-        rels = rels_path.read_text(encoding="utf-8")
-        figuras_xml, num = {}, 0
-        for secao, itens in FIGURAS.items():
-            partes = []
-            for nome, legenda in itens:
-                num += 1
-                png = FLUXOS / f"{nome}.png"
-                shutil.copy(png, pasta / "word" / "media" / png.name)
-                rid = f"rIdFluxo{num}"
-                rels = rels.replace("</Relationships>",
-                                    f'<Relationship Id="{rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/{png.name}"/></Relationships>')
-                partes.append(figura(rid, num, png, legenda))
-            figuras_xml[secao] = "".join(partes)
-        rels_path.write_text(rels, encoding="utf-8")
+        rels = [rels_path.read_text(encoding="utf-8")]
+        contador = [0]
+
+        def nova_figura(png: pathlib.Path, legenda: str) -> str:
+            contador[0] += 1
+            num = contador[0]
+            nome = f"figura{num:02d}.png"
+            preparar_imagem(png, pasta / "word" / "media" / nome)
+            rid = f"rIdFigura{num}"
+            rels[0] = rels[0].replace("</Relationships>",
+                                      f'<Relationship Id="{rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/{nome}"/></Relationships>')
+            return figura(rid, num, pasta / "word" / "media" / nome, legenda)
+
+        # ---- 3. seções 8 a 20: troca o texto-modelo pelo conteúdo ----
+        texto_de = lambda m: re.sub(r"<[^>]+>", "", m.group(0))
+        # primeiro marca o lugar de cada seção; depois converte em ordem (figuras numeradas de 1 em diante)
+        for n in range(20, 7, -1):
+            paragrafos = list(re.finditer(r"<w:p[ >].*?</w:p>", doc, flags=re.S))
+            ini = next(m for m in paragrafos if texto_de(m) == TITULOS[n])
+            if n < 20:
+                fim = next(m for m in paragrafos if texto_de(m) == TITULOS[n + 1]).start()
+            else:
+                fim = doc.rindex("<w:sectPr")
+            doc = doc[:ini.end()] + f"<!--secao{n}-->" + doc[fim:]
+        for n in range(8, 21):
+            arquivo = next(SECOES.glob(f"{n:02d}-*.md"))
+            novo = converter_markdown(arquivo.read_text(encoding="utf-8"), arquivo.parent, nova_figura)
+            doc = doc.replace(f"<!--secao{n}-->", novo)
+
+        rels_path.write_text(rels[0], encoding="utf-8")
         ct_path = pasta / "[Content_Types].xml"
         ct = ct_path.read_text(encoding="utf-8")
         if 'Extension="png"' not in ct:
             ct = ct.replace("<Default Extension=\"xml\"", '<Default Extension="png" ContentType="image/png"/><Default Extension="xml"')
         ct_path.write_text(ct, encoding="utf-8")
 
-        # ---- 3. seção 8: troca o texto-modelo pelo algoritmo ----
-        paragrafos = list(re.finditer(r"<w:p[ >].*?</w:p>", doc, flags=re.S))
-        texto_de = lambda m: re.sub(r"<[^>]+>", "", m.group(0))
-        ini = next(m for m in paragrafos if texto_de(m) == "8. Algoritmo proposto")
-        fim = next(m for m in paragrafos if texto_de(m) == "9. Estruturas de dados utilizadas")
-        novo = converter_markdown(PSEUDO.read_text(encoding="utf-8"), figuras_xml)
-        doc = doc[:ini.end()] + novo + doc[fim.start():]
-
         # garante os prefixos de namespace usados nas figuras
         raiz = re.match(r"<\?xml[^>]*>\s*<w:document[^>]*>", doc).group(0)
-        for prefixo, uri in (("wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"),
-                             ("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")):
+        for prefixo in ("wp", "r"):
             assert f"xmlns:{prefixo}=" in raiz, f"namespace {prefixo} ausente"
         doc_path.write_text(doc, encoding="utf-8")
 
@@ -294,7 +311,7 @@ def main():
             for arq in sorted(pasta.rglob("*")):
                 if arq.is_file():
                     z.write(arq, arq.relative_to(pasta).as_posix())
-    print("gerado:", DESTINO.relative_to(RAIZ))
+    print(f"gerado: {DESTINO.relative_to(RAIZ)}  ({contador[0]} figuras)")
 
 
 if __name__ == "__main__":

@@ -32,13 +32,14 @@ O sistema fica em **http://IP-DO-SERVIDOR:3000** (porta configurável em `PORTA_
 | `COOKIE_SEGURO`     | false       | `true` quando o site estiver atrás de HTTPS (proxy reverso) |
 | `DADOS_DEMONSTRACAO`| true        | banco vazio: `true` cria os dados de demonstração; **em produção use `false`** |
 | `ADMIN_CPF`, `ADMIN_EMAIL`, `ADMIN_SENHA` | — | com `DADOS_DEMONSTRACAO=false`, o SuperAdmin criado no primeiro uso |
+| `PROJETO`, `PREFIXO`, `VOLUME_BANCO` | ticket-system, ingressos, ticket-system-dados | nomes do projeto, dos contêineres e do volume; mude para rodar uma segunda cópia ao lado (ex.: a versão refatorada usa `ticket-system-v2`, porta 3001) |
 
 Comandos úteis:
 
 ```bash
-docker compose ps                 # situação (os dois serviços têm healthcheck)
-docker compose logs -f app        # registros da aplicação
-docker compose up -d --build app  # atualizar depois de um git pull
+docker compose ps                        # situação (os três serviços têm healthcheck)
+docker compose logs -f back front        # registros do back e do front
+docker compose up -d --build back front  # atualizar depois de um git pull
 docker compose down               # parar (os dados ficam no volume)
 docker compose down -v            # parar e APAGAR o banco
 ```
@@ -87,7 +88,7 @@ Para zerar o banco: `docker compose down -v && docker compose up -d db`.
 
 | Perfil | O que pode fazer |
 |--------|------------------|
-| **Cliente** | criar conta (CPF validado), ver eventos com ingressos disponíveis, comprar escolhendo categoria, inteira/meia, assento no mapa e forma de pagamento, comprovante, histórico e cancelamento |
+| **Cliente** | criar conta (CPF validado), ver eventos com ingressos disponíveis, comprar escolhendo categoria, inteira/meia, assento no mapa e forma de pagamento, comprovante, histórico, cancelamento e **troca de assento** (remarcação) |
 | **Organizador** | criar a própria conta (CNPJ validado), cadastrar eventos com várias categorias (preço e quantidade, com ou sem assento marcado), **gerenciar cada evento**: ver vendidos/disponíveis por categoria, editar nome/preço/quantidade, adicionar e remover categorias, alterar capacidade, abrir/encerrar vendas e excluir evento sem vendas; relatório, lista de vendas e check-in |
 | **SuperAdmin** | cadastrar, listar, ativar, bloquear, editar e remover organizadores |
 
@@ -127,7 +128,7 @@ A partir daí, cada push na `main` que passar na CI faz `git pull`, `docker comp
 ## Testes
 
 ```bash
-cargo test                  # 46 testes: domínio, cenários, API por HTTP e ponta a ponta (front + back)
+cargo test                  # 54 testes: domínio, cenários, API por HTTP e ponta a ponta (front + back)
 cargo test -- --ignored     # + teste de integração no PostgreSQL real (precisa do docker)
 ```
 
@@ -142,7 +143,14 @@ cargo test -- --ignored     # + teste de integração no PostgreSQL real (precis
 Os cenários pedidos na seção 15 do relatório estão em `crates/aplicacao/tests/cenarios.rs`:
 **Teste 1** (normal — compra com assento), **Teste 2** (alternativo — meia-entrada sem assento e
 cancelamento) e **Teste 3** (excepcionais — assento já vendido, evento lotado, dados inválidos,
-organizador bloqueado, controle de acesso, cancelamento proibido).
+organizador bloqueado, controle de acesso, cancelamento e remarcação proibidos), além do
+**Teste 2c** (remarcação: troca de assento).
+
+### Padrão de qualidade
+
+O workspace liga o clippy **pedantic** para todos os pacotes (`[workspace.lints]` no `Cargo.toml`) e
+o CI roda com `-D warnings`: qualquer aviso barra a alteração. As poucas exceções são locais e
+comentadas no próprio código.
 
 ## Arquitetura (camadas)
 
@@ -194,10 +202,11 @@ banco é exclusivamente o back.
 | 1 — Programa principal / login     | `aplicacao/src/servicos/autenticacao.rs` (`entrar`), `web/src/rotas/publico.rs` |
 | 2 — Cadastrar cliente + validar CPF| `autenticacao.rs` (`cadastrar_cliente`), `dominio/src/valores/documento.rs` |
 | 3 — Cadastrar evento               | `servicos/eventos.rs`, `dominio/src/entidades/evento.rs` (`EventoBuilder`) |
-| Gestão do evento (categorias, preço, quantidade, capacidade) | `servicos/eventos.rs` (`alterar_categoria`, `adicionar_categoria`...), `entidades/ingresso.rs` |
-| Cadastro de organizador            | `aplicacao/src/cadastro_organizador.rs` (usado pela tela pública e pelo SuperAdmin) |
+| 8 — Gestão do evento (categorias, preço, quantidade, capacidade) | `servicos/eventos.rs` (`alterar_categoria`, `adicionar_categoria`...), `entidades/ingresso.rs` |
+| 9 — Cadastro de organizador        | `aplicacao/src/cadastro_organizador.rs` (usado pela tela pública e pelo SuperAdmin) |
 | 4 — Comprar ingresso               | `servicos/vendas.rs` (`preparar`, `confirmar`), `postgres/vendas.rs` (`registrar`) |
 | 5 — Cancelar compra                | `servicos/vendas.rs` (`cancelar`), `entidades/venda.rs` (`verificar_cancelamento`) |
+| 5b — Remarcar compra (trocar assento) | `servicos/vendas.rs` (`remarcar`), `entidades/venda.rs` (`verificar_remarcacao`) |
 | 6 — Relatório e check-in           | `servicos/relatorios.rs`, `entidades/relatorio.rs` (`calcular`)   |
 | 7 — Gerenciar organizadores        | `servicos/administracao.rs`, `entidades/organizador.rs`           |
 | Mapa de assentos (matriz)          | `entidades/assento.rs` (`MapaAssentos`)                           |
