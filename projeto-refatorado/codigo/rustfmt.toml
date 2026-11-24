@@ -1,0 +1,4 @@
+# Formatação padrão do projeto (cargo fmt). A CI recusa código fora deste padrão.
+edition = "2024"
+max_width = 120
+use_small_heuristics = "Max"

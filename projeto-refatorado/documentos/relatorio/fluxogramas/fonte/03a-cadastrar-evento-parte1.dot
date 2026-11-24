@@ -1,0 +1,41 @@
+  label="Cadastrar evento — Parte 1: dados do evento"; labelloc=t; fontsize=13
+
+  I  [class=term label="Início\ncadastrarEvento(organizador)"]
+  A  [class=dec  label="organizador\nativo?"]
+  E0 [class=io   label="Erro: apenas organizadores\nativos cadastram eventos"]
+  F0 [class=term label="Fim"]
+  L  [class=io   label="Ler nome, descrição, local,\ndata, horário, capacidade,\npermiteCancelamento"]
+  V1 [class=dec  label="nome e local\npreenchidos?"]
+  E1 [class=io   label="Erro: campos\nobrigatórios"]
+  F1 [class=term label="Fim"]
+  V2 [class=dec  label="data >\nhoje?"]
+  E2 [class=io   label="Erro: a data\ndeve ser futura"]
+  F2 [class=term label="Fim"]
+  V3 [class=dec  label="capacidade\n> 0?"]
+  E3 [class=io   label="Erro: capacidade\ninválida"]
+  F3 [class=term label="Fim"]
+  N  [class=proc label="Criar evento com status ABERTO\ntotalCategorias ← 0\nresposta ← \"S\""]
+  B  [class=con  label="B"]
+  NB [shape=plaintext fontsize=10 label="continua na Parte 2"]
+
+  I -> A
+  A -> L  [label=" Sim" weight=10]
+  A -> E0 [label="Não"]
+  E0 -> F0
+  {rank=same; A; E0; F0}
+  L -> V1
+  V1 -> V2 [label=" Sim" weight=10]
+  V1 -> E1 [label="Não"]
+  E1 -> F1
+  {rank=same; V1; E1; F1}
+  V2 -> V3 [label=" Sim" weight=10]
+  V2 -> E2 [label="Não"]
+  E2 -> F2
+  {rank=same; V2; E2; F2}
+  V3 -> N  [label=" Sim" weight=10]
+  V3 -> E3 [label="Não"]
+  E3 -> F3
+  {rank=same; V3; E3; F3}
+  N -> B
+  B -> NB [style=invis]
+  {rank=same; B; NB}

@@ -1,0 +1,56 @@
+  label="Cadastrar evento — Parte 2: categorias de ingresso"; labelloc=t; fontsize=13
+
+  B    [class=con  label="B"]
+  LOOP [class=dec  label="resposta\n= \"S\"?"]
+  LC   [class=io   label="Ler nome da categoria,\npreço e comAssento"]
+  CA   [class=dec  label="com\nassento?"]
+  LF   [class=io   label="Ler fileiras e\nassentos por fileira"]
+  QF   [class=proc label="quantidade ←\nfileiras × assentosPorFileira"]
+  LQ   [class=io   label="Ler quantidade"]
+  P1   [class=dec  label="preço ≥ 0 E\nquantidade\n> 0?"]
+  EC   [class=io   label="Erro: categoria\nignorada"]
+  P2   [class=dec  label="totalCategorias\n+ quantidade\n≤ capacidade?"]
+  EC2  [class=io   label="Erro: ultrapassa\na capacidade"]
+  ADD  [class=proc label="Adicionar categoria ao evento\ntotalCategorias ←\ntotalCategorias + quantidade"]
+  CA2  [class=dec  label="com\nassento?"]
+  GA   [class=sub  label="gerarAssentos(fileiras,\nassentosPorFileira)"]
+  PG   [class=io   label="Ler resposta:\noutra categoria? (S/N)"]
+  VZ   [class=dec  label="tem ao menos\n1 categoria?"]
+  E4   [class=io   label="Erro: cadastro\ncancelado"]
+  G    [class=proc label="Gravar evento, categorias\ne assentos no banco"]
+  OK   [class=io   label="Escrever \"Evento\ncadastrado\" e o código"]
+  F    [class=term label="Fim"]
+  F4   [class=term label="Fim"]
+  C    [class=con  label="C"]
+  C2   [class=con  label="C"]
+
+  B -> LOOP
+  LOOP -> LC [label=" Sim" weight=10]
+  LOOP -> VZ [label="Não"]
+  LC -> CA
+  CA -> LF [label=" Sim" weight=10]
+  CA -> LQ [label="Não"]
+  {rank=same; CA; LQ}
+  LF -> QF
+  QF -> P1 [weight=10]
+  LQ -> P1
+  P1 -> P2 [label=" Sim" weight=10]
+  P1 -> EC [label="Não"]
+  {rank=same; P1; EC}
+  P2 -> ADD [label=" Sim" weight=10]
+  P2 -> EC2 [label="Não"]
+  {rank=same; P2; EC2}
+  ADD -> CA2
+  CA2 -> GA [label=" Sim" weight=10]
+  CA2 -> PG [label="Não"]
+  GA -> PG [weight=10]
+  EC -> PG
+  EC2 -> PG
+  PG -> C
+  C2 -> LOOP [label=" repete"]
+  {rank=same; C2; B}
+  VZ -> G  [label=" Sim" weight=10]
+  VZ -> E4 [label="Não"]
+  E4 -> F4
+  {rank=same; VZ; E4; F4}
+  G -> OK -> F

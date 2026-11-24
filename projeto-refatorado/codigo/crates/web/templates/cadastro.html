@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="cartao estreito">
+  <h1>Criar conta de cliente</h1>
+  {% if let Some(e) = erro %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <form method="post" action="/cadastro" class="formulario">
+    <label>Nome completo <input name="nome" value="{{ nome }}" required></label>
+    <label>CPF <input name="cpf" value="{{ cpf }}" placeholder="000.000.000-00" inputmode="numeric" required>
+      <small>O sistema confere os dígitos verificadores.</small></label>
+    <label>E-mail <input type="email" name="email" value="{{ email }}" required></label>
+    <label>Senha <input type="password" name="senha" minlength="6" required><small>Mínimo de 6 caracteres.</small></label>
+    <button class="botao">Criar conta</button>
+  </form>
+  <p class="rodape-cartao">Já tem conta? <a href="/entrar">Entrar</a> · Vende ingressos? <a href="/cadastro/organizador">Conta de organizador</a></p>
+</section>
+{% endblock %}

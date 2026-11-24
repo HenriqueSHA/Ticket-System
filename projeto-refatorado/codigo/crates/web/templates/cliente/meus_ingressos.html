@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<h1>Meus ingressos</h1>
+{% if linhas.is_empty() %}<p class="vazio">Você ainda não comprou ingressos. <a href="/eventos">Ver eventos</a></p>{% else %}
+<table class="tabela">
+  <thead><tr><th>Nº</th><th>Evento</th><th>Data</th><th>Categoria</th><th>Assento</th><th>Tipo</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead>
+  <tbody>
+  {% for l in linhas %}
+  <tr class="{% if l.passado %}passado{% endif %}">
+    <td><a href="/compras/{{ l.item.venda.id() }}">{{ "{:06}"|format(l.item.venda.id()) }}</a></td>
+    <td>{{ l.item.evento }}</td>
+    <td>{{ l.item.data_evento|data }}{% if l.passado %} <small>(realizado)</small>{% endif %}</td>
+    <td>{{ l.item.categoria }}</td>
+    <td>{% if let Some(a) = l.item.assento %}{{ a }}{% else %}—{% endif %}</td>
+    <td>{{ l.item.venda.tipo().nome() }}</td>
+    <td class="num">{{ l.item.venda.valor() }}</td>
+    <td><span class="selo {{ l.item.venda.status().codigo() }}">{{ l.item.venda.status().nome() }}</span></td>
+    <td><div class="acoes-linha">{% if l.pode_remarcar %}<a class="botao pequeno secundario" href="/compras/{{ l.item.venda.id() }}/remarcar">Trocar assento</a>{% endif %}
+    {% if l.pode_cancelar %}
+      <form method="post" action="/compras/{{ l.item.venda.id() }}/cancelar"
+            data-confirmar="Cancelar a compra nº {{ l.item.venda.id() }}? Valor a estornar: {{ l.item.venda.valor() }}">
+        <button class="botao pequeno perigo">Cancelar</button></form>
+    {% endif %}</div></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="{{ voltar }}">← Voltar</a>
+<h1>{% if editando %}Alterar evento{% else %}Novo evento{% endif %}</h1>
+{% for e in erros %}<div class="aviso erro">{{ e }}</div>{% endfor %}
+<form method="post" action="{{ acao }}" class="cartao formulario">
+  <h2>Dados do evento</h2>
+  <div class="colunas">
+    <label>Nome <input name="nome" value="{{ campos.nome }}" required></label>
+    <label>Local <input name="local" value="{{ campos.local }}" required></label>
+  </div>
+  <label>Descrição <input name="descricao" value="{{ campos.descricao }}"></label>
+  <div class="colunas tres">
+    <label>Data <input type="date" name="data" value="{{ campos.data }}" required><small>Deve ser futura.</small></label>
+    <label>Horário <input type="time" name="horario" value="{{ campos.horario }}" required></label>
+    <label>Capacidade total
+      <input type="number" name="capacidade" min="{{ capacidade_minima }}" value="{{ campos.capacidade }}" required>
+      {% if editando %}<small>Mínimo {{ capacidade_minima }} (soma das categorias). As categorias são ajustadas em "Gerenciar".</small>{% endif %}</label>
+  </div>
+  <label class="marcar"><input type="checkbox" name="permite_cancelamento" {% if campos.permite_cancelamento %}checked{% endif %}> Permite cancelamento pelo cliente</label>
+  {% if editando %}
+  <label class="marcar"><input type="checkbox" name="vendas_abertas" {% if campos.vendas_abertas %}checked{% endif %}> Vendas abertas (desmarque para encerrar as vendas)</label>
+  {% else %}
+  <h2>Categorias de ingresso</h2>
+  <p class="dica">Com assento marcado, a quantidade é fileiras × assentos por fileira (máx. 26 fileiras e 30 assentos por fileira). A soma das categorias não pode passar da capacidade.</p>
+  <table class="tabela categorias" id="categorias">
+    <thead><tr><th>Nome</th><th>Preço (R$)</th><th>Assento marcado?</th><th>Quantidade</th><th>Fileiras</th><th>Assentos/fileira</th><th></th></tr></thead>
+    <tbody>
+    {% for c in categorias %}
+    <tr>
+      <td><input name="cat_nome" value="{{ c.nome }}"></td>
+      <td><input name="cat_preco" value="{{ c.preco }}" placeholder="120,00"></td>
+      <td><select name="cat_assento"><option value="nao">Não</option><option value="sim" {% if c.com_assento %}selected{% endif %}>Sim</option></select></td>
+      <td><input name="cat_quantidade" value="{{ c.quantidade }}" inputmode="numeric"></td>
+      <td><input name="cat_fileiras" value="{{ c.fileiras }}" inputmode="numeric"></td>
+      <td><input name="cat_por_fileira" value="{{ c.por_fileira }}" inputmode="numeric"></td>
+      <td><button type="button" class="link" onclick="removerLinha(this)">remover</button></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <button type="button" class="botao secundario pequeno" onclick="adicionarLinha()">+ Adicionar categoria</button>
+  {% endif %}
+  <div class="acoes"><button class="botao">{% if editando %}Salvar alterações{% else %}Cadastrar evento{% endif %}</button></div>
+</form>
+<script>
+  // Mostra só os campos que fazem sentido para cada linha (quantidade OU fileiras × assentos)
+  function ajustar(linha) {
+    const assento = linha.querySelector('select').value === 'sim';
+    linha.querySelector('[name=cat_quantidade]').disabled = assento;
+    linha.querySelector('[name=cat_fileiras]').disabled = !assento;
+    linha.querySelector('[name=cat_por_fileira]').disabled = !assento;
+  }
+  function adicionarLinha() {
+    const corpo = document.querySelector('#categorias tbody');
+    const nova = corpo.rows[0] ? corpo.rows[0].cloneNode(true) : null;
+    if (!nova) return;
+    nova.querySelectorAll('input').forEach(i => i.value = '');
+    nova.querySelector('select').value = 'nao';
+    corpo.appendChild(nova); preparar(nova);
+  }
+  function removerLinha(botao) {
+    const corpo = document.querySelector('#categorias tbody');
+    if (corpo.rows.length > 1) botao.closest('tr').remove();
+  }
+  function preparar(linha) { linha.querySelector('select').onchange = () => ajustar(linha); ajustar(linha); }
+  document.querySelectorAll('#categorias tbody tr').forEach(preparar);
+  // campos desabilitados não são enviados: reabilita antes de enviar para manter as linhas alinhadas
+  document.querySelector('form.formulario').addEventListener('submit', () =>
+    document.querySelectorAll('#categorias input:disabled').forEach(i => { i.disabled = false; i.value = ''; }));
+</script>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="/organizador/eventos/{{ evento.id() }}">← {{ evento.nome() }}</a>
+<section class="cartao estreito">
+  <h1>Editar categoria</h1>
+  <p class="meta">{{ ingresso.vendidos() }} vendidos · {{ ingresso.disponivel() }} disponíveis · {{ ingresso.quantidade() }} no total</p>
+  {% if let Some(e) = erro %}<div class="aviso erro">{{ e }}</div>{% endif %}
+  <form method="post" action="/organizador/eventos/{{ evento.id() }}/categorias/{{ ingresso.id() }}" class="formulario">
+    <label>Nome <input name="nome" value="{{ nome }}" required></label>
+    <label>Preço (R$) <input name="preco" value="{{ preco }}" required>
+      <small>O novo preço vale para as próximas vendas; quem já comprou não é afetado.</small></label>
+    {% if let Some(st) = ingresso.setor() %}
+    <label>Quantidade de ingressos <input value="{{ ingresso.quantidade() }}" disabled>
+      <small>Categoria com assento marcado: a quantidade vem do mapa ({{ st.fileiras }} fileiras × {{ st.assentos_por_fileira }} assentos).</small></label>
+    {% else %}
+    <label>Quantidade de ingressos <input type="number" name="quantidade" min="{{ ingresso.vendidos() }}" value="{{ quantidade }}" required>
+      <small>Mínimo {{ ingresso.vendidos() }} (já vendidos). A soma das categorias não pode passar da capacidade do evento ({{ evento.capacidade() }}).</small></label>
+    {% endif %}
+    <div class="acoes"><a class="botao secundario" href="/organizador/eventos/{{ evento.id() }}">Voltar</a><button class="botao">Salvar</button></div>
+  </form>
+</section>
+{% endblock %}

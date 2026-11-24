@@ -1,0 +1,30 @@
+  I   [class=term label="Início\nexibirMapaAssentos(categoria)"]
+  H   [class=io   label="Escrever nome do setor\ne legenda"]
+  F0  [class=proc label="f ← 1"]
+  CF  [class=dec  label="f ≤\nfileiras?"]
+  FIM [class=term label="Fim"]
+  LF  [class=io   label="Escrever letra(f)"]
+  N0  [class=proc label="n ← 1"]
+  CN  [class=dec  label="n ≤\nassentos por\nfileira?"]
+  OC  [class=dec  label="assento(f, n)\nOCUPADO?"]
+  X   [class=io   label="Escrever \"[X]\""]
+  V   [class=io   label="Escrever \"[ ]\""]
+  INC [class=proc label="n ← n + 1"]
+  QL  [class=io   label="Quebrar linha"]
+  FI  [class=proc label="f ← f + 1"]
+
+  I -> H -> F0 -> CF
+  CF -> LF  [label=" Sim" weight=10]
+  CF -> FIM [label="Não"]
+  {rank=same; CF; FIM}
+  LF -> N0 -> CN
+  CN -> OC [label=" Sim" weight=10]
+  CN -> QL [label="Não"]
+  {rank=same; CN; QL}
+  OC -> X [label="Sim"]
+  OC -> V [label="Não"]
+  X -> INC
+  V -> INC
+  INC -> CN [constraint=false]
+  QL -> FI
+  FI -> CF [constraint=false]

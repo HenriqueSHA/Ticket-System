@@ -1,0 +1,14 @@
+[package]
+name = "infraestrutura"
+description = "Camada de infraestrutura: PostgreSQL (sqlx), hash Argon2, relógio e repositórios em memória"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+dominio.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+argon2 = "0.5"
+sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres", "chrono", "migrate", "macros"] }

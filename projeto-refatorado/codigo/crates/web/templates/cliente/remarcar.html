@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<a class="voltar" href="/meus-ingressos">← Meus ingressos</a>
+<h1>Trocar assento</h1>
+<p class="meta">Compra nº {{ "{:06}"|format(item.venda.id()) }} · {{ item.evento }} · {{ item.data_evento|data }} · {{ item.categoria }}
+  · assento atual <strong>{% if let Some(a) = item.assento %}{{ a }}{% endif %}</strong></p>
+
+<form method="post" action="/compras/{{ item.venda.id() }}/remarcar" class="cartao">
+  <h2>Escolha o novo assento — setor {{ mapa.setor() }}</h2>
+  <p class="legenda"><span class="assento demo"></span> livre <span class="assento ocupado demo">✕</span> ocupado <span class="assento demo marcado"></span> sua escolha · {{ mapa.livres() }} de {{ mapa.total() }} livres</p>
+  <div class="sala">
+  <div class="palco">PALCO</div>
+  <div class="mapa">
+    <div class="linha cabecalho"><span class="letra"></span>{% for n in mapa.numeros() %}<span class="numero">{{ n }}</span>{% endfor %}</div>
+    {% for linha in mapa.linhas() %}
+    <div class="linha"><span class="letra">{{ linha.letra }}</span>
+      {% for c in linha.assentos %}
+      {% if c.ocupado %}<span class="assento ocupado" title="{{ c.rotulo }} — ocupado">✕</span>
+      {% else %}<label class="assento" title="Assento {{ c.rotulo }}"><input type="radio" name="assento" value="{{ linha.letra }}-{{ c.numero }}" required><span>{{ c.numero }}</span></label>{% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  </div>
+  <p>A troca não altera o valor pago. O assento antigo volta a ficar livre.</p>
+  <button class="botao">Confirmar troca</button>
+</form>
+{% endblock %}

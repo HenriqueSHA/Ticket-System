@@ -1,5 +1,5 @@
 # Rust
-codigo/target/
+target/
 # configuração local (modelo em .env.example)
 .env
 # dependências e arquivos gerados por ferramentas

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block conteudo %}
+<section class="ingresso">
+  <div class="ingresso-topo"><span>INGRESSO</span><strong>Nº {{ "{:06}"|format(item.venda.id()) }}</strong></div>
+  <h1>{{ item.evento }}</h1>
+  <dl class="resumo">
+    <dt>Data</dt><dd>{{ item.data_evento|data }} às {{ item.horario|hora }}</dd>
+    <dt>Local</dt><dd>{{ item.local }}</dd>
+    <dt>Categoria</dt><dd>{{ item.categoria }}</dd>
+    <dt>Assento</dt><dd>{% if let Some(a) = item.assento %}{{ a }}{% else %}livre{% endif %}</dd>
+    <dt>Tipo</dt><dd>{{ item.venda.tipo().nome() }}</dd>
+    <dt>Valor</dt><dd>{{ item.venda.valor() }}</dd>
+    <dt>Pagamento</dt><dd>{{ item.venda.forma_pagamento().nome() }}</dd>
+    <dt>Cliente</dt><dd>{{ cliente }}</dd>
+    <dt>Compra</dt><dd>{{ item.venda.data_compra()|data_hora }}</dd>
+    <dt>Situação</dt><dd><span class="selo {{ item.venda.status().codigo() }}">{{ item.venda.status().nome() }}</span></dd>
+  </dl>
+  <p class="dica">Apresente o número do ingresso na entrada do evento.</p>
+</section>
+<p class="centro"><a class="botao secundario" href="/meus-ingressos">Meus ingressos</a> <a class="botao" href="/eventos">Comprar outro</a></p>
+{% endblock %}

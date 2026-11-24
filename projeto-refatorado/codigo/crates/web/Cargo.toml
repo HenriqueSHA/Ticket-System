@@ -1,0 +1,30 @@
+[package]
+name = "web"
+description = "Front-end: interface web (Axum + templates HTML) que consome a API do back"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "ingressos-web"
+path = "src/main.rs"
+
+[dependencies]
+dominio.workspace = true
+contrato.workspace = true
+chrono.workspace = true
+serde.workspace = true
+tokio.workspace = true
+askama = "0.12"
+axum = "0.8"
+axum-extra = { version = "0.10", features = ["cookie", "form"] }
+dotenvy = "0.15"
+reqwest = { version = "0.12", default-features = false, features = ["json"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+[dev-dependencies]
+api.workspace = true
+aplicacao.workspace = true
+infraestrutura.workspace = true
+reqwest = { version = "0.12", default-features = false, features = ["json", "cookies"] }

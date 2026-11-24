@@ -1,0 +1,12 @@
+[package]
+name = "contrato"
+description = "Contrato HTTP/JSON entre o front (web) e o back (api): tipos de requisição e resposta"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+dominio.workspace = true
+aplicacao.workspace = true
+chrono.workspace = true
+serde.workspace = true
